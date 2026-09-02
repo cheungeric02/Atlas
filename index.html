@@ -315,6 +315,12 @@ input,select,textarea{font:inherit;color:inherit}
   #print-root .pi b{width:70px;flex:none}
   #print-root .pmeta{font-size:12px;color:#333;margin-bottom:8px}
 }
+.syncpill{font-weight:600;font-size:11px;letter-spacing:.02em;padding:5px 10px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);color:var(--ink-3);background:var(--surface);white-space:nowrap;flex:none}
+.syncpill::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ink-3);flex:none}
+.syncpill.on{color:var(--primary);border-color:color-mix(in srgb,var(--primary) 40%,var(--line))}
+.syncpill.on::before{background:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 22%,transparent)}
+.syncpill.err::before{background:#e0574f}
+@media(max-width:520px){ .syncpill{font-size:0;gap:0;padding:7px} .syncpill::before{width:8px;height:8px} }
 </style>
 </head>
 <body>
@@ -369,7 +375,33 @@ const dayNameOf=(t,d)=>((t.dayNames||{})[d]||'');
 const KEY='roam-v1';
 let S={v:1,trips:{},order:[],active:null,ui:{view:'trips',prepTab:'packing'}};
 function load(){ try{const r=localStorage.getItem(KEY); if(r) S=JSON.parse(r);}catch(e){} if(!S.ui)S.ui={view:'trips',prepTab:'packing'}; }
-function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
+function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} pushRemote(); }
+
+/* ===== Live sync — open, whole-trip collaboration over shared bon-echo Firebase =====
+   Anyone with the GitHub Pages link sees & edits the same trips in real time.
+   In the Claude Artifact sandbox the CSP blocks the SDK + realtime socket, so the
+   dynamic import fails and the app silently falls back to local-only. */
+const FB_CONFIG={apiKey:"AIzaSyD9AJbPC9M4gpTyvfIoRcqILq0ZOom1OBs",authDomain:"bon-echo-bd946.firebaseapp.com",databaseURL:"https://bon-echo-bd946-default-rtdb.firebaseio.com",projectId:"bon-echo-bd946",storageBucket:"bon-echo-bd946.firebasestorage.app",messagingSenderId:"196437731482",appId:"1:196437731482:web:3ac836962ce7d89e735723"};
+const FB_PATH='atlas/main';
+let fbLib=null, fbDB=null, atlasRef=null, firebaseReady=false, applyingRemote=false, pendingRemote=false, syncState='off';
+function setSync(s){ syncState=s; const el=document.getElementById('syncPill'); if(el){ el.className='syncpill '+s; el.textContent = s==='on'?'Live':s==='err'?'Offline':'Local'; } }
+function pushRemote(){ if(firebaseReady&&!applyingRemote&&atlasRef&&fbLib){ try{ fbLib.set(atlasRef,{v:S.v,trips:S.trips,order:S.order}); }catch(e){} } }
+function syncBusy(){ const m=document.getElementById('modal-root'); if(m&&m.innerHTML.trim()) return true; const a=document.activeElement; return !!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); }
+window.__atlasFB=function(lib){ fbLib=lib; try{
+    const app=lib.initializeApp(FB_CONFIG); fbDB=lib.getDatabase(app); atlasRef=lib.ref(fbDB,FB_PATH);
+    lib.onValue(atlasRef, snap=>{
+      firebaseReady=true; setSync('on');
+      const v=snap.val();
+      if(!v){ if(S.order&&S.order.length) pushRemote(); return; }     // empty cloud → seed from this device
+      applyingRemote=true;
+      S.trips=v.trips||{}; S.order=v.order||[]; if(v.v!=null)S.v=v.v;
+      if(S.active&&!S.trips[S.active])S.active=null;
+      try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
+      applyingRemote=false;
+      if(syncBusy()) pendingRemote=true; else render();               // don't yank an open form out mid-edit
+    }, err=>{ firebaseReady=false; setSync('err'); });
+  }catch(e){ firebaseReady=false; setSync('err'); }
+};
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 const trip=()=>S.trips[S.active];
 
@@ -433,6 +465,7 @@ function render(){
   html+=`<div class="spacer"></div>`;
   if(t){ html+=clockHTML(t); }
   if(t){ html+=`<button class="iconbtn" data-act="settings" title="Trip settings">${svg('gear')}</button>`; }
+  html+=`<span id="syncPill" class="syncpill ${syncState}" title="Live sync status">${syncState==='on'?'Live':syncState==='err'?'Offline':'Local'}</span>`;
   html+=`<button class="iconbtn" data-act="theme" title="Theme">${svg('sun')}</button></div>`;
 
   html+=`<div class="shell">`;
@@ -918,7 +951,7 @@ function prepPrint(t){
 
 /* ================= MODALS ================= */
 const mroot=()=>document.getElementById('modal-root');
-function closeModal(){mroot().innerHTML='';}
+function closeModal(){mroot().innerHTML=''; if(pendingRemote){pendingRemote=false; render();}}
 function sheet(title,body,actions){
   mroot().innerHTML=`<div class="scrim" data-scrim><div class="sheet" role="dialog" aria-modal="true">
     <div class="sh-head"><h3>${title}</h3><button class="iconbtn" data-close>${svg('close')}</button></div>
@@ -990,7 +1023,8 @@ function saveTrip(id){
     destTZ:Number(g('t-dtz')),homeTZ:Number(g('t-htz')),
     currency:{code:(g('t-cur').trim()||'CAD').toUpperCase(),perCad:Number(g('t-rate'))||1}};
   if(id){
-    const t=S.trips[id]; const oldStart=t.start, oldEnd=t.end;
+    const t=S.trips[id]; if(!t){closeModal();render();return;}   // trip removed elsewhere while editing
+    const oldStart=t.start, oldEnd=t.end;
     Object.assign(t,patch);
     if(oldStart&&oldEnd&&patch.start&&patch.end){
       const sD=daysBetween(oldStart,patch.start), eD=daysBetween(oldEnd,patch.end);
@@ -1221,6 +1255,16 @@ if(S.active&&!S.trips[S.active])S.active=null;
 if(!S.active&&S.order.length)S.ui.view='trips';
 render();
 setInterval(()=>{const c=document.querySelector('.clock');if(c&&trip())c.outerHTML=clockHTML(trip());},30000);
+</script>
+<script type="module">
+  /* Pull in Firebase for live sync. Blocked by CSP inside the Claude Artifact → caught → local-only. */
+  try{
+    const [app,dbm]=await Promise.all([
+      import('https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js'),
+      import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js')
+    ]);
+    window.__atlasFB && window.__atlasFB({initializeApp:app.initializeApp,getDatabase:dbm.getDatabase,ref:dbm.ref,onValue:dbm.onValue,set:dbm.set,get:dbm.get});
+  }catch(e){ /* sandboxed/offline — stay local-only */ }
 </script>
 
 </body>
