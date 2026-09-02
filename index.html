@@ -491,7 +491,21 @@ const dayNameOf=(t,d)=>((t.dayNames||{})[d]||'');
 /* ================= STATE ================= */
 const KEY='roam-v1';
 let S={v:1,trips:{},order:[],active:null,ui:{view:'trips',prepTab:'packing'}};
-function load(){ try{const r=localStorage.getItem(KEY); if(r) S=JSON.parse(r);}catch(e){} if(!S.ui)S.ui={view:'trips',prepTab:'packing'}; }
+/* Firebase Realtime DB drops empty arrays/objects on write, so a trip saved with
+   e.g. legs:[] comes back with legs === undefined. Re-hydrate every expected field
+   on any trip entering the app so views can safely call .length/.map/.find. */
+function normTrip(t){
+  if(!t||typeof t!=='object') return t;
+  ['party','legs','hotels','items','expenses','packing','transports','comments'].forEach(k=>{ if(!Array.isArray(t[k])) t[k]=[]; });
+  if(!t.budgets||typeof t.budgets!=='object'||Array.isArray(t.budgets)) t.budgets={};
+  if(!t.dayNames||typeof t.dayNames!=='object'||Array.isArray(t.dayNames)) t.dayNames={};
+  if(!t.currency||typeof t.currency!=='object'||Array.isArray(t.currency)) t.currency={code:'HKD',perCad:5.6};
+  (t.items||[]).forEach(i=>{ if(!Array.isArray(i.who)) i.who=[]; if(i.comments!=null&&!Array.isArray(i.comments)) i.comments=[]; });
+  (t.expenses||[]).forEach(e=>{ if(!Array.isArray(e.splitAmong)) e.splitAmong=[]; });
+  return t;
+}
+function normState(){ if(!S.trips||typeof S.trips!=='object') S.trips={}; if(!Array.isArray(S.order)) S.order=[]; for(const id in S.trips) normTrip(S.trips[id]); }
+function load(){ try{const r=localStorage.getItem(KEY); if(r) S=JSON.parse(r);}catch(e){} if(!S.ui)S.ui={view:'trips',prepTab:'packing'}; normState(); }
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} pushRemote(); }
 
 /* ===== Live sync — open, whole-trip collaboration over shared bon-echo Firebase =====
@@ -513,6 +527,7 @@ window.__atlasFB=function(lib){ fbLib=lib; try{
       if(!v){ if(S.order&&S.order.length) pushRemote(); return; }     // empty cloud → seed from this device
       applyingRemote=true;
       S.trips=v.trips||{}; S.order=v.order||[]; if(v.v!=null)S.v=v.v;
+      normState();   // Firebase strips empty arrays; re-hydrate so render() can't crash on undefined fields
       if(S.active&&!S.trips[S.active])S.active=null;
       try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}
       applyingRemote=false;
