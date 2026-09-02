@@ -7,6 +7,12 @@
 <meta name="description" content="Atlas - a multi-destination travel planner: day-by-day itinerary, hotels, bookings, budgets and cost-splitting.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E">
 <title>Atlas</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Atlas">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
@@ -1403,6 +1409,16 @@ setInterval(()=>{const c=document.querySelector('.clock');if(c&&trip())c.outerHT
     ]);
     window.__atlasFB && window.__atlasFB({initializeApp:app.initializeApp,getDatabase:dbm.getDatabase,ref:dbm.ref,onValue:dbm.onValue,set:dbm.set,get:dbm.get});
   }catch(e){ /* sandboxed/offline — stay local-only */ }
+</script>
+
+<script>
+  /* PWA: register the service worker for offline + installability.
+     No-ops in the Claude Artifact (no sw.js served / CSP) — fails silently. */
+  if('serviceWorker' in navigator){
+    window.addEventListener('load',()=>{
+      navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(()=>{});
+    });
+  }
 </script>
 
 </body>
