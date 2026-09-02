@@ -356,6 +356,41 @@ input,select,textarea{font:inherit;color:inherit}
 .conv{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end}
 .conv .conv-eq{padding-bottom:11px;color:var(--ink-3);font-size:20px;display:grid;place-items:center}
 .conv .field input{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
+
+/* ---------- Map ---------- */
+.mapbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.mapchip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1.5px solid var(--outline);
+  background:var(--surface);color:var(--ink-2);font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.mapchip .sw{width:11px;height:11px;border-radius:50%;flex:0 0 auto}
+.mapchip.on{border-color:transparent;color:#fff}
+.mapstatus{font-size:12.5px;color:var(--ink-3);margin-left:auto;display:inline-flex;align-items:center;gap:6px}
+.mapstatus .spin{width:12px;height:12px;border:2px solid var(--outline);border-top-color:var(--primary);border-radius:50%;animation:mspin .8s linear infinite}
+@keyframes mspin{to{transform:rotate(360deg)}}
+#atlas-map{height:min(64vh,620px);width:100%;border-radius:var(--r-m);border:1px solid var(--line);
+  box-shadow:var(--shadow-1);background:var(--sc-low);z-index:0}
+#atlas-map.atlas-dark .leaflet-tile-pane{filter:invert(1) hue-rotate(180deg) brightness(.92) contrast(.9) saturate(.85)}
+@media (max-width:760px){#atlas-map{height:62vh}}
+.maplegend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-top:12px;padding:12px 14px;background:var(--surface);
+  border:1px solid var(--line);border-radius:var(--r-m)}
+.maplegend .lg{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2)}
+.maplegend .sw{width:13px;height:13px;border-radius:50%;flex:0 0 auto;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15)}
+/* leaflet pin markers */
+.mk{width:26px;height:26px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--c,#0d6e66);
+  border:2px solid #fff;box-shadow:0 2px 5px rgba(0,0,0,.4);display:grid;place-items:center}
+.mk b,.mk svg{transform:rotate(45deg)}
+.mk b{color:#fff;font-weight:800;font-size:12px;line-height:1;font-variant-numeric:tabular-nums}
+.mk svg{width:14px;height:14px;fill:#fff}
+.mk.wish{background:#8a929c}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--surface);color:var(--ink);box-shadow:var(--shadow-2)}
+.leaflet-popup-content{margin:11px 13px;font:500 13px/1.45 'IBM Plex Sans',system-ui,sans-serif}
+.leaflet-popup-content b{font-size:14px}
+.leaflet-popup-content .pc-meta{color:var(--ink-3);font-size:12px;margin-top:2px}
+.leaflet-popup-content a{color:var(--primary);font-weight:600;text-decoration:none;display:inline-block;margin-top:6px}
+.leaflet-container a.leaflet-popup-close-button{color:var(--ink-3)}
+.leaflet-bar a{background:var(--surface);color:var(--ink);border-bottom-color:var(--line)}
+.leaflet-bar a:hover{background:var(--sc)}
+.mapempty{text-align:center;padding:44px 20px;color:var(--ink-3)}
+.mapempty .big{opacity:.5}.mapempty .big svg{width:52px;height:52px}
 </style>
 </head>
 <body>
@@ -392,6 +427,7 @@ const I = {
   sun:'<path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5v3m0 14v3M4.2 4.2l2.1 2.1m11.4 11.4 2.1 2.1M2 12h3m14 0h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
   chat:'<path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H8l-4 4V5a1 1 0 0 1 1-1zm3 5h10v2H7zm0 4h7v2H7z"/>',
   bell:'<path d="M12 2a6 6 0 0 0-6 6v3.6l-1.7 3.4A1 1 0 0 0 5.2 16h13.6a1 1 0 0 0 .9-1.4L18 11.6V8a6 6 0 0 0-6-6zm0 20a3 3 0 0 0 3-3H9a3 3 0 0 0 3 3z"/>',
+  globe:'<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-2.5a15.6 15.6 0 0 0-1.2-3.3A8 8 0 0 1 18.9 8zM12 4c.8 1.1 1.4 2.5 1.8 4h-3.6c.4-1.5 1-2.9 1.8-4zM4.3 14a8 8 0 0 1 0-4h2.9a17.5 17.5 0 0 0 0 4zm.8 2h2.5c.3 1.2.7 2.3 1.2 3.3A8 8 0 0 1 5.1 16zm2.5-8H5.1a8 8 0 0 1 3.7-3.3C8.3 5.7 7.9 6.8 7.6 8zM12 20c-.8-1.1-1.4-2.5-1.8-4h3.6c-.4 1.5-1 2.9-1.8 4zm2.2-6H9.8a15.6 15.6 0 0 1 0-4h4.4a15.6 15.6 0 0 1 0 4zm.8 5.3c.5-1 .9-2.1 1.2-3.3h2.5a8 8 0 0 1-3.7 3.3zm2.8-5.3a17.5 17.5 0 0 0 0-4h2.9a8 8 0 0 1 0 4z"/>',
 };
 const svg=(n,cls='')=>`<svg viewBox="0 0 24 24" fill="currentColor" ${cls?`class="${cls}"`:''} aria-hidden="true">${I[n]||''}</svg>`;
 
@@ -529,15 +565,17 @@ function render(){
   if(v==='trips'||!t) html+=viewTrips();
   else if(v==='plan') html+=viewPlan(t);
   else if(v==='book') html+=viewBookings(t);
+  else if(v==='map') html+=viewMap(t);
   else if(v==='money') html+=viewMoney(t);
   else if(v==='prep') html+=viewPrep(t);
   html+=`</div></div>`;
   app().innerHTML=html;
   if(S.ui.view==='plan'&&t) afterPlan(t);
+  if(S.ui.view==='map'&&t) afterMap(t);
 }
 function navHTML(){
   const v=S.ui.view;
-  const items=[['plan','map','Plan'],['book','ticket','Bookings'],['money','wallet','Money'],['prep','pack','Prep']];
+  const items=[['plan','map','Plan'],['book','ticket','Bookings'],['map','globe','Map'],['money','wallet','Money'],['prep','pack','Prep']];
   return `<nav class="nav">
     ${items.map(([k,ic,lb])=>`<button class="navbtn" data-nav="${k}" aria-current="${v===k}">
       <span class="pill">${svg(ic)}</span><span>${lb}</span></button>`).join('')}
@@ -707,6 +745,165 @@ function afterPlan(t){
   // auto jump to today
   const td=document.querySelector('.day.today');
   if(td && !S.ui._jumped){ td.scrollIntoView({block:'center',behavior:'smooth'}); S.ui._jumped=true; }
+}
+
+/* ================= VIEW: MAP ================= */
+let _leafletP=null;
+function ensureLeaflet(){
+  if(window.L) return Promise.resolve(window.L);
+  if(_leafletP) return _leafletP;
+  _leafletP=new Promise((res,rej)=>{
+    const css=document.createElement('link'); css.rel='stylesheet';
+    css.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+    document.head.appendChild(css);
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+    s.onload=()=>res(window.L); s.onerror=rej;
+    document.head.appendChild(s);
+  });
+  return _leafletP;
+}
+// --- geocoding queue (Nominatim, throttled ~1/s, coords cached on the record & synced) ---
+const _geoCache={};
+let _geoQ=[], _geoBusy=false, _geoSaveT=null;
+function scheduleGeoSave(){ clearTimeout(_geoSaveT); _geoSaveT=setTimeout(()=>{ try{save();}catch(e){} },1400); }
+function geoCandidates(t,rec,kind){
+  const base=((rec.address||rec.title||rec.name)||'').trim(); if(!base) return [];
+  const day = kind==='hotel' ? rec.checkIn : rec.day;
+  const c=[];
+  if(day){ const l=legFor(t,day); if(l&&l.place) c.push(base+', '+l.place); }   // most specific
+  if(t.dest) c.push(base+', '+t.dest);                                          // trip destination
+  c.push(base);                                                                 // bare term
+  return [...new Set(c)];
+}
+function enqueueGeo(t,rec,kind,onDone){
+  const cands=geoCandidates(t,rec,kind); if(!cands.length){ onDone&&onDone(false); return; }
+  const hit=cands.find(q=>_geoCache[q]);
+  if(hit){ rec.lat=_geoCache[hit].lat; rec.lng=_geoCache[hit].lng; rec.geo='ok'; onDone&&onDone(true); return; }
+  _geoQ.push({cands,idx:0,rec,onDone}); pumpGeo();
+}
+function pumpGeo(){
+  if(_geoBusy) return; const job=_geoQ.shift(); if(!job){ refreshMapUI(); return; }
+  _geoBusy=true;
+  const q=job.cands[job.idx];
+  fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q='+encodeURIComponent(q),{headers:{Accept:'application/json'}})
+    .then(r=>r.ok?r.json():[])
+    .then(d=>{
+      if(d&&d[0]){ const lat=+d[0].lat,lng=+d[0].lon; job.rec.lat=lat; job.rec.lng=lng; job.rec.geo='ok'; _geoCache[q]={lat,lng}; job.onDone&&job.onDone(true); }
+      else if(job.idx+1<job.cands.length){ job.idx++; _geoQ.unshift(job); }   // try a looser query next tick
+      else{ job.rec.geo='fail'; job.onDone&&job.onDone(false); }              // genuine no-match → don't retry
+    })
+    .catch(()=>{ job.onDone&&job.onDone(false); })                            // network error → leave unmarked, retry next open
+    .finally(()=>{ scheduleGeoSave(); setTimeout(()=>{ _geoBusy=false; pumpGeo(); refreshMapUI(); },1100); });
+}
+function refreshMapUI(){
+  if(S.ui.view!=='map') return;
+  const t=trip(); if(!t) return;
+  drawMapSafe(t);
+  const el=document.getElementById('mapstatus'); if(!el) return;
+  const pend=_geoQ.length+(_geoBusy?1:0);
+  const located=t.items.filter(i=>i.lat!=null).length+(t.hotels||[]).filter(h=>h.lat!=null).length;
+  el.innerHTML = pend?`<span class="spin"></span>Locating ${pend} place${pend>1?'s':''}…`:(located?`${located} place${located>1?'s':''} mapped`:'No places located');
+}
+function viewMap(t){
+  const dl=daysList(t);
+  const geocodable=t.items.filter(i=>i.address||i.title).length;
+  if(!geocodable && !(t.hotels||[]).length){
+    return `<div class="section-title"><h2>Map</h2></div>
+      <div class="mapempty"><div class="big">${svg('globe')}</div>
+      <h3>Nothing to map yet</h3><p>Add activities (with a name or address) and they'll appear here — pinned, numbered, and colored by day.</p></div>`;
+  }
+  const filt=S.ui.mapDay||'all';
+  let chips=`<button class="mapchip ${filt==='all'?'on':''}" data-mapday="all" ${filt==='all'?'style="background:var(--primary);border-color:transparent"':''}>All days</button>`;
+  dl.forEach((d,i)=>{ const c=dayColor(i),on=filt===d;
+    chips+=`<button class="mapchip ${on?'on':''}" data-mapday="${d}" ${on?`style="background:${c};border-color:${c}"`:''}><span class="sw" style="background:${c}"></span>Day ${i+1}</button>`; });
+  if(t.items.some(i=>!i.day&&(i.address||i.title))){ const on=filt==='wish';
+    chips+=`<button class="mapchip ${on?'on':''}" data-mapday="wish" ${on?'style="background:#8a929c;border-color:#8a929c"':''}><span class="sw" style="background:#8a929c"></span>★ Wishlist</button>`; }
+  let legend='';
+  dl.forEach((d,i)=>{ const l=legFor(t,d); legend+=`<span class="lg"><span class="sw" style="background:${dayColor(i)}"></span>Day ${i+1}${l&&l.place?' · '+esc(l.place):''}</span>`; });
+  return `<div class="section-title"><h2>Map</h2></div>
+    <div class="mapbar">${chips}<span class="mapstatus" id="mapstatus"></span></div>
+    <div id="atlas-map"></div>
+    ${dl.length?`<div class="maplegend">${legend}</div>`:''}`;
+}
+let _map=null,_mapLayer=null,_mapView=null,_viewApplied=false;
+function afterMap(t){
+  const el=document.getElementById('atlas-map'); if(!el) return;
+  const status=document.getElementById('mapstatus'); if(status) status.innerHTML='<span class="spin"></span>Loading map…';
+  ensureLeaflet().then(L=>{
+    if(document.getElementById('atlas-map')!==el) return;        // navigated away while loading
+    if(_map){ try{_map.remove();}catch(e){} _map=null; }
+    const root=document.documentElement.getAttribute('data-theme');
+    const dark = root==='dark' || (root!=='light' && matchMedia('(prefers-color-scheme:dark)').matches);
+    el.classList.toggle('atlas-dark',dark);   // CSS filter darkens the tiles (keyless OSM has no dark style)
+    _map=L.map(el,{zoomControl:true});
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      {maxZoom:19,subdomains:'abc',attribution:'&copy; OpenStreetMap contributors'}).addTo(_map);
+    _mapLayer=L.layerGroup().addTo(_map);
+    _viewApplied=false;
+    _map.setView([20,0],2);
+    setTimeout(()=>{
+      if(!_map) return;
+      try{_map.invalidateSize();}catch(e){}
+      drawMap(t,L);
+      _map.on('moveend',()=>{ if(_map) _mapView={c:_map.getCenter(),z:_map.getZoom()}; });
+      startGeocode(t);
+    },60);
+  }).catch(()=>{ const s=document.getElementById('mapstatus'); if(s) s.textContent='Map failed to load'; });
+}
+function markerIcon(L,inner,cls,c){
+  return L.divIcon({className:'',html:`<div class="mk ${cls||''}" style="--c:${c}">${inner}</div>`,iconSize:[26,26],iconAnchor:[13,26],popupAnchor:[0,-25]});
+}
+function popupHTML(t,it,badge){
+  const q=encodeURIComponent((it.address||it.title)+' '+(t.dest||''));
+  return `<b>${esc(it.title)}</b><div class="pc-meta">${badge}${it.start?' · '+it.start:''} · ${catName(it.category)}</div>`
+    +(it.address?`<div class="pc-meta">${esc(it.address)}</div>`:'')
+    +`<a href="https://www.google.com/maps/search/?api=1&query=${q}" target="_blank" rel="noopener">Open in Google Maps ↗</a>`;
+}
+function drawMap(t,L){
+  if(!_map||!_mapLayer) return;
+  _mapLayer.clearLayers();
+  const filt=S.ui.mapDay||'all', dl=daysList(t), pts=[];
+  dl.forEach((d,i)=>{
+    if(filt!=='all'&&filt!==d) return;
+    const c=dayColor(i), its=itemsFor(t,d), line=[];
+    its.forEach((it,idx)=>{
+      if(it.lat==null) return;
+      const ll=[it.lat,it.lng]; pts.push(ll); line.push(ll);
+      L.marker(ll,{icon:markerIcon(L,`<b>${idx+1}</b>`,'',c)}).addTo(_mapLayer).bindPopup(popupHTML(t,it,'Day '+(i+1)));
+    });
+    if(line.length>1) L.polyline(line,{color:c,weight:3.5,opacity:.75}).addTo(_mapLayer);
+  });
+  if(filt==='all'||filt==='wish'){
+    t.items.filter(it=>!it.day&&it.lat!=null).forEach(it=>{
+      const ll=[it.lat,it.lng]; pts.push(ll);
+      L.marker(ll,{icon:markerIcon(L,'<b>★</b>','wish','#8a929c')}).addTo(_mapLayer).bindPopup(popupHTML(t,it,'Wishlist'));
+    });
+  }
+  (t.hotels||[]).forEach(h=>{
+    if(h.lat==null) return;
+    let show = (filt==='all') || (filt!=='wish' && h.checkIn && h.checkOut && filt>=h.checkIn && filt<h.checkOut);
+    if(!show) return;
+    const ll=[h.lat,h.lng]; pts.push(ll);
+    L.marker(ll,{icon:markerIcon(L,svg('bed'),'','#0d6e66')}).addTo(_mapLayer)
+      .bindPopup(`<b>${esc(h.name)}</b><div class="pc-meta">Hotel${h.checkIn?' · '+fmtD(h.checkIn):''}${h.checkOut?' → '+fmtD(h.checkOut):''}</div>`);
+  });
+  if(!_viewApplied){
+    if(_mapView){ _map.setView(_mapView.c,_mapView.z); _viewApplied=true; }
+    else if(pts.length){ pts.length===1?_map.setView(pts[0],14):_map.fitBounds(pts,{padding:[40,40]}); _viewApplied=true; }
+  }
+}
+function drawMapSafe(t){
+  if(!(window.L&&_map)) return;
+  if((_geoQ.length+(_geoBusy?1:0))>0) _viewApplied=false;   // keep all points framed while still loading
+  drawMap(t,window.L);
+}
+function startGeocode(t){
+  const needItems=t.items.filter(i=>i.lat==null && i.geo!=='fail' && (i.address||i.title));
+  const needHotels=(t.hotels||[]).filter(h=>h.lat==null && h.geo!=='fail' && h.name);
+  needItems.forEach(it=>enqueueGeo(t,it,'item',refreshMapUI));
+  needHotels.forEach(h=>enqueueGeo(t,h,'hotel',refreshMapUI));
+  refreshMapUI();
 }
 /* ---- Pointer-based drag & drop (works on touch + mouse) ---- */
 let drag=null;
@@ -1124,7 +1321,9 @@ function saveItem(id){
   const title=g('f-title'); if(!title){document.getElementById('f-title').focus();return;}
   const data={title,category:readCat(),start:g('f-start'),end:g('f-end'),day:document.getElementById('f-day').value||null,
     address:g('f-addr'),cost:g('f-cost')?Number(g('f-cost')):null,confirmation:g('f-conf'),who:readWho(),notes:g('f-notes')};
-  if(id){Object.assign(t.items.find(x=>x.id===id),data);}
+  if(id){const ex=t.items.find(x=>x.id===id);
+    if(ex&&((ex.address||'')!==data.address||(ex.title||'')!==data.title)){delete ex.lat;delete ex.lng;delete ex.geo;} // location text changed → re-geocode
+    Object.assign(ex,data);}
   else{data.id=uid();data.order=(t.items.filter(i=>i.day===data.day).length);t.items.push(data);}
   save();closeModal();render();
 }
@@ -1238,6 +1437,7 @@ document.addEventListener('click',e=>{
   let el;
   // nav
   if((el=T.closest('[data-nav]'))){S.ui.view=el.dataset.nav;S.ui._jumped=false;save();render();return;}
+  if((el=find('data-mapday'))){S.ui.mapDay=el.dataset.mapday;_mapView=null;_viewApplied=false;save();render();return;}
   if((el=find('data-open'))){S.active=el.dataset.open;S.ui.view='plan';S.ui._jumped=false;save();render();return;}
   if(find('data-act')){ const a=find('data-act').dataset.act; act(a); return; }
   if((el=find('data-dup'))){dupTrip(el.dataset.dup);return;}
@@ -1321,7 +1521,9 @@ function saveLeg(id){const t=trip();const g=x=>document.getElementById(x).value;
   const d={place,start:g('l-start'),end:g('l-end')};if(id)Object.assign(t.legs.find(x=>x.id===id),d);else t.legs.push({id:uid(),...d});save();closeModal();render();}
 function saveHotel(id){const t=trip();const g=x=>document.getElementById(x).value;const name=g('h-name').trim();if(!name)return;
   const d={name,checkIn:g('h-in'),checkOut:g('h-out'),confirmation:g('h-conf').trim(),notes:g('h-notes').trim()};
-  if(id)Object.assign(t.hotels.find(x=>x.id===id),d);else t.hotels.push({id:uid(),...d});save();closeModal();render();}
+  if(id){const ex=t.hotels.find(x=>x.id===id);
+    if(ex&&(ex.name||'')!==d.name){delete ex.lat;delete ex.lng;delete ex.geo;} // name changed → re-geocode
+    Object.assign(ex,d);}else t.hotels.push({id:uid(),...d});save();closeModal();render();}
 function saveTransport(id){const t=trip();const g=x=>document.getElementById(x).value;
   const d={mode:g('x-mode').trim(),from:g('x-from').trim(),to:g('x-to').trim(),date:g('x-date'),time:g('x-time'),
     arrive:g('x-arrive'),flightNo:g('x-flight').trim(),confirmation:g('x-conf').trim(),notes:g('x-notes').trim()};
@@ -1343,6 +1545,7 @@ function toggleTheme(){
   const dark=cur?cur==='dark':matchMedia('(prefers-color-scheme:dark)').matches;
   document.documentElement.setAttribute('data-theme',dark?'light':'dark');
   try{localStorage.setItem('roam-theme',dark?'light':'dark');}catch(e){}
+  if(S.ui.view==='map'&&_map){ render(); }   // rebuild map so its tile theme matches
 }
 try{const th=localStorage.getItem('roam-theme');if(th)document.documentElement.setAttribute('data-theme',th);}catch(e){}
 
