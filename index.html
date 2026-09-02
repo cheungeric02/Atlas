@@ -1,10 +1,10 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0d6e66">
-<meta name="description" content="Atlas — a multi-destination travel planner: day-by-day itinerary, hotels, bookings, budgets and cost-splitting.">
+<meta name="description" content="Atlas - a multi-destination travel planner: day-by-day itinerary, hotels, bookings, budgets and cost-splitting.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%97%BA%EF%B8%8F%3C/text%3E%3C/svg%3E">
 <title>Atlas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -325,6 +325,7 @@ input,select,textarea{font:inherit;color:inherit}
 </head>
 <body>
 
+
 <div id="app"></div>
 <div id="modal-root"></div>
 <div id="print-root"></div>
@@ -415,7 +416,7 @@ function daysList(t){ if(!t.start||!t.end) return []; const out=[]; let c=t.star
 function fmtD(s,opt){return parseISO(s).toLocaleDateString(undefined,opt||{weekday:'short',month:'short',day:'numeric'});}
 function nights(a,b){return Math.max(0,Math.round((parseISO(b)-parseISO(a))/86400000));}
 function daysBetween(a,b){return Math.round((parseISO(b)-parseISO(a))/86400000);} // signed
-// Move the whole trip by `delta` days â€” everything dated shifts with it, so nothing is lost.
+// Move the whole trip by `delta` days — everything dated shifts with it, so nothing is lost.
 function shiftTripDates(t,delta){
   if(!delta)return;
   (t.items||[]).forEach(i=>{if(i.day)i.day=addDays(i.day,delta);});
@@ -425,7 +426,7 @@ function shiftTripDates(t,delta){
   (t.expenses||[]).forEach(e=>{if(e.date)e.date=addDays(e.date,delta);});
   if(t.dayNames){const nn={};Object.keys(t.dayNames).forEach(k=>{nn[addDays(k,delta)]=t.dayNames[k];});t.dayNames=nn;}
 }
-// After a resize, any activity now outside the date range drops to the Wishlist (bottom) â€” never deleted.
+// After a resize, any activity now outside the date range drops to the Wishlist (bottom) — never deleted.
 function reconcileTripDates(t){
   if(!t.start||!t.end)return;
   const inRange=new Set(daysList(t));
@@ -440,7 +441,7 @@ function cheatRule(perCad){
   // perCad = how many local units per 1 CAD
   const powers=[10,100,1000,10000,100000];
   for(const p of powers){ if(Math.abs(perCad-p)/p<0.16){ const n=Math.round(Math.log10(p));
-    return {text:`Move the decimal ${n} place${n>1?'s':''} left`, ex:`${(1*p).toLocaleString()} â†’ â‰ˆ C$1`}; } }
+    return {text:`Move the decimal ${n} place${n>1?'s':''} left`, ex:`${(1*p).toLocaleString()} → ≈ C$1`}; } }
   const f=1/perCad;
   let phrase='';
   if(Math.abs(f-0.5)<0.06)phrase=' (about half)';
@@ -448,7 +449,7 @@ function cheatRule(perCad){
   else if(Math.abs(f-0.1)<0.03)phrase=' (about a tenth)';
   else if(Math.abs(f-0.25)<0.04)phrase=' (about a quarter)';
   else if(Math.abs(f-0.75)<0.05)phrase=' (about three-quarters)';
-  return {text:`Ã— ${f.toPrecision(2)}${phrase}`, ex:`i.e. divide by about ${perCad.toFixed(1)}`};
+  return {text:`× ${f.toPrecision(2)}${phrase}`, ex:`i.e. divide by about ${perCad.toFixed(1)}`};
 }
 
 /* ================= RENDER ROOT ================= */
@@ -458,7 +459,7 @@ function render(){
   let html=`<div class="topbar">`;
   if(t && S.ui.view!=='trips'){
     html+=`<button class="iconbtn" data-act="home" title="All trips">${svg('bag')}</button>
-      <div><div class="trip-name">${esc(t.name)}</div><div class="trip-sub">${t.start?fmtD(t.start,{month:'short',day:'numeric'})+' â€“ '+fmtD(t.end,{month:'short',day:'numeric'}):'No dates set'}</div></div>`;
+      <div><div class="trip-name">${esc(t.name)}</div><div class="trip-sub">${t.start?fmtD(t.start,{month:'short',day:'numeric'})+' – '+fmtD(t.end,{month:'short',day:'numeric'}):'No dates set'}</div></div>`;
   } else {
     html+=`<div class="brand"><span class="glyph">${svg('map')}</span>Atlas</div>`;
   }
@@ -515,9 +516,9 @@ function viewTrips(){
     h+=`<div class="card tripcard" data-open="${id}">
       <div class="hero"><h3>${esc(t.name)}</h3>${cdlabel?`<span class="cd">${cdlabel}</span>`:''}</div>
       <div class="meta">
-        <div class="row">${svg('cal')} ${t.start?fmtD(t.start)+' â†’ '+fmtD(t.end)+' Â· '+dl.length+'d':'Set dates'}</div>
-        <div class="row">${svg('pin')} ${t.legs.length?t.legs.map(l=>esc(l.place)).join(' â†’ '):esc(t.dest||'Add destinations')}</div>
-        <div class="row">${svg('map')} ${t.items.length} activit${t.items.length===1?'y':'ies'} Â· ${svg('people')} ${t.party.length}</div>
+        <div class="row">${svg('cal')} ${t.start?fmtD(t.start)+' → '+fmtD(t.end)+' · '+dl.length+'d':'Set dates'}</div>
+        <div class="row">${svg('pin')} ${t.legs.length?t.legs.map(l=>esc(l.place)).join(' → '):esc(t.dest||'Add destinations')}</div>
+        <div class="row">${svg('map')} ${t.items.length} activit${t.items.length===1?'y':'ies'} · ${svg('people')} ${t.party.length}</div>
       </div>
       <div class="acts">
         <button class="btn sm tonal" data-open="${id}">Open</button>
@@ -540,7 +541,7 @@ function viewPlan(t){
   // legs bar
   h+=`<div class="legbar">`;
   for(const l of t.legs){ h+=`<div class="legchip" data-editleg="${l.id}"><div class="p">${svg('pin')} ${esc(l.place)}</div>
-     <div class="d">${l.start?fmtD(l.start,{month:'short',day:'numeric'})+' â€“ '+fmtD(l.end,{month:'short',day:'numeric'}):'no dates'}</div></div>`; }
+     <div class="d">${l.start?fmtD(l.start,{month:'short',day:'numeric'})+' – '+fmtD(l.end,{month:'short',day:'numeric'}):'no dates'}</div></div>`; }
   h+=`<button class="legchip" data-act="add-leg" style="display:grid;place-items:center;min-width:52px;color:var(--ink-3)">${svg('plus')}</button></div>`;
 
   if(!dl.length){
@@ -560,7 +561,7 @@ function viewPlan(t){
     const hot=basedHotel(t,day); const leg=legFor(t,day); const isNight=di<dl.length-1;
     const nm=dayNameOf(t,day);
     let right='';
-    if(isToday) right+=`<span class="todaytag">â— Today</span>`;
+    if(isToday) right+=`<span class="todaytag">● Today</span>`;
     if(hot) right+=`<button class="based" data-edithotel="${hot.id}" title="View / edit reservation">${svg('bed')} ${esc(hot.name)}</button>`;
     else if(isNight) right+=`<button class="based nohotel" data-addhotel="${day}" title="No hotel booked for this night">${svg('bed')} No hotel</button>`;
     else if(leg) right+=`<span class="based leg">${svg('pin')} ${esc(leg.place)}</span>`;
@@ -575,7 +576,7 @@ function viewPlan(t){
       </div>
       <div class="daylist droplist" data-day="${day}">`;
     const its=itemsFor(t,day);
-    if(!its.length) h+=`<div class="muted" style="text-align:center;padding:10px;font-size:13px">Nothing planned â€” drag here or add â†“</div>`;
+    if(!its.length) h+=`<div class="muted" style="text-align:center;padding:10px;font-size:13px">Nothing planned — drag here or add ↓</div>`;
     let prevEnd=null;
     for(const it of its){
       if(it.start && prevEnd && it.start>prevEnd){ const g=gapMins(prevEnd,it.start); if(g>=60) h+=`<div class="gap">${Math.floor(g/60)}h${g%60?' '+(g%60)+'m':''} free</div>`; }
@@ -588,9 +589,9 @@ function viewPlan(t){
   // wishlist
   const wish=t.items.filter(i=>!i.day).sort((a,b)=>(a.order??0)-(b.order??0));
   h+=`<div class="day wishlist" data-dayblock="wish"><div class="dayhead wishhead">
-    <span class="dnum" style="background:var(--secondary)">â˜…</span>
+    <span class="dnum" style="background:var(--secondary)">★</span>
     <div class="dtitle" style="cursor:default"><span class="dname">Wishlist</span>
-    <span class="ddate" style="color:inherit;opacity:.75">Ideas not yet scheduled â€” drag into a day</span></div></div>
+    <span class="ddate" style="color:inherit;opacity:.75">Ideas not yet scheduled — drag into a day</span></div></div>
     <div class="daylist droplist" data-day="">`;
   if(!wish.length) h+=`<div class="muted" style="text-align:center;padding:10px;font-size:13px">Add places you want to fit in.</div>`;
   for(const it of wish) h+=itemHTML(t,it);
@@ -608,12 +609,12 @@ function planSummary(t,dl){
     const nm=dayNameOf(t,d); const n=itemsFor(t,d).length;
     h+=`<button class="sum-day${d===today?' now':''}" data-jump="${d}">
       <span class="sd-dot" style="background:${dayColor(i)}"></span>
-      <span class="sd-txt"><b>Day ${i+1}${nm?' Â· '+esc(nm):''}</b>
-      <span class="sd-sub">${fmtD(d,{weekday:'short',month:'short',day:'numeric'})} Â· ${n} item${n===1?'':'s'}</span></span></button>`;
+      <span class="sd-txt"><b>Day ${i+1}${nm?' · '+esc(nm):''}</b>
+      <span class="sd-sub">${fmtD(d,{weekday:'short',month:'short',day:'numeric'})} · ${n} item${n===1?'':'s'}</span></span></button>`;
   });
   const wn=t.items.filter(i=>!i.day).length;
   h+=`<button class="sum-day" data-jump="wish"><span class="sd-dot" style="background:var(--secondary)"></span>
-    <span class="sd-txt"><b>â˜… Wishlist</b><span class="sd-sub">${wn} idea${wn===1?'':'s'}</span></span></button>`;
+    <span class="sd-txt"><b>★ Wishlist</b><span class="sd-sub">${wn} idea${wn===1?'':'s'}</span></span></button>`;
   return h;
 }
 function planStrip(t,dl){
@@ -622,7 +623,7 @@ function planStrip(t,dl){
   dl.forEach((d,i)=>{ const nm=dayNameOf(t,d);
     h+=`<button class="sum-chip${d===today?' now':''}" data-jump="${d}" style="--dc:${dayColor(i)}">Day ${i+1}${nm?`<small>${esc(nm)}</small>`:''}</button>`;
   });
-  h+=`<button class="sum-chip" data-jump="wish" style="--dc:var(--secondary)">â˜… Wishlist</button></div>`;
+  h+=`<button class="sum-chip" data-jump="wish" style="--dc:var(--secondary)">★ Wishlist</button></div>`;
   return h;
 }
 function gapMins(a,b){const[h1,m1]=a.split(':').map(Number),[h2,m2]=b.split(':').map(Number);return (h2*60+m2)-(h1*60+m1);}
@@ -631,7 +632,7 @@ function itemHTML(t,it){
   return `<div class="item" data-item="${it.id}">
     <button class="grip" data-grip title="Drag to reorder" aria-label="Drag to reorder">${svg('drag')}</button>
     <div class="catbar" style="background:${catColor(it.category)}"></div>
-    <div class="time">${it.start?esc(it.start):'<span class="muted">â€”</span>'}${it.end?`<span class="end">${esc(it.end)}</span>`:''}</div>
+    <div class="time">${it.start?esc(it.start):'<span class="muted">—</span>'}${it.end?`<span class="end">${esc(it.end)}</span>`:''}</div>
     <div class="body">
       <div class="ttl">${esc(it.title)}</div>
       <div class="sub">
@@ -771,7 +772,7 @@ function viewBookings(t){
       rows+=`<div class="cov ${hot?'':'gap'}">
         <div class="cov-d"><b>Night ${i+1}</b><span>${fmtD(d,{weekday:'short',month:'short',day:'numeric'})}</span></div>
         ${hot?`<button class="cov-h" data-edithotel="${hot.id}">${svg('bed')} ${esc(hot.name)}</button>`
-             :`<button class="cov-h miss" data-addhotel="${d}">${svg('bed')} No hotel â€” add</button>`}</div>`;
+             :`<button class="cov-h miss" data-addhotel="${d}">${svg('bed')} No hotel — add</button>`}</div>`;
     });
     h+=`<div class="card" style="padding:0;margin-bottom:16px">
       <div class="cov-head ${gaps?'warn':'ok'}">${svg('bed')}
@@ -785,8 +786,8 @@ function viewBookings(t){
   if(!t.transports.length) h+=`<div class="muted" style="padding:0 14px 14px;font-size:13px">No flights or transport added yet.</div>`;
   [...t.transports].sort((a,b)=>(a.date||'~').localeCompare(b.date||'~')).forEach(x=>{
     h+=`<div class="book" data-edittransport="${x.id}"><div class="ic" style="color:var(--cat-transport)">${svg('plane')}</div>
-      <div class="body"><div style="font-weight:600">${esc(x.from||'?')} â†’ ${esc(x.to||'?')} <span class="muted" style="font-weight:400;font-size:12px">${esc(x.mode||'')}</span></div>
-      <div class="muted" style="font-size:12.5px">${x.date?fmtD(x.date):'no date'}${x.time?' Â· '+esc(x.time):''}</div>
+      <div class="body"><div style="font-weight:600">${esc(x.from||'?')} → ${esc(x.to||'?')} <span class="muted" style="font-weight:400;font-size:12px">${esc(x.mode||'')}</span></div>
+      <div class="muted" style="font-size:12.5px">${x.date?fmtD(x.date):'no date'}${x.time?' · '+esc(x.time):''}</div>
       ${x.confirmation?`<span class="conf">${esc(x.confirmation)}</span>`:''}</div></div>`;
   });
   h+=`</div>`;
@@ -797,7 +798,7 @@ function viewBookings(t){
   [...t.hotels].sort((a,b)=>(a.checkIn||'~').localeCompare(b.checkIn||'~')).forEach(x=>{
     h+=`<div class="book" data-edithotel="${x.id}"><div class="ic" style="color:var(--cat-hotel)">${svg('bed')}</div>
       <div class="body"><div style="font-weight:600">${esc(x.name)}</div>
-      <div class="muted" style="font-size:12.5px">${x.checkIn?fmtD(x.checkIn)+' â†’ '+fmtD(x.checkOut)+' Â· '+nights(x.checkIn,x.checkOut)+' nights':'no dates'}</div>
+      <div class="muted" style="font-size:12.5px">${x.checkIn?fmtD(x.checkIn)+' → '+fmtD(x.checkOut)+' · '+nights(x.checkIn,x.checkOut)+' nights':'no dates'}</div>
       ${x.confirmation?`<span class="conf">${esc(x.confirmation)}</span>`:''}
       ${x.notes?`<div class="muted" style="font-size:12px;margin-top:3px">${esc(x.notes)}</div>`:''}</div></div>`;
   });
@@ -809,7 +810,7 @@ function viewBookings(t){
     h+=`<div class="card" style="padding:0"><div class="bk-sec">${svg('bag')} Other reservations</div>`;
     conf.forEach(x=>{ h+=`<div class="book" data-edititem="${x.id}"><div class="ic" style="color:${catColor(x.category)}">${svg('pin')}</div>
       <div class="body"><div style="font-weight:600">${esc(x.title)}</div>
-      <div class="muted" style="font-size:12.5px">${x.day?fmtD(x.day):'unscheduled'}${x.start?' Â· '+esc(x.start):''}</div>
+      <div class="muted" style="font-size:12.5px">${x.day?fmtD(x.day):'unscheduled'}${x.start?' · '+esc(x.start):''}</div>
       <span class="conf">${esc(x.confirmation)}</span></div></div>`; });
     h+=`</div>`;
   }
@@ -827,21 +828,21 @@ function viewMoney(t){
   let h=`<div class="section-title"><h2>Money</h2><div class="spacer"></div>
     <button class="btn sm" data-act="add-exp">${svg('plus')} Expense</button></div>`;
   h+=`<div class="stat-row">
-    <div class="stat card"><div class="k">Spent so far</div><div class="v tnum">${cur.code} ${money(spentLocal)}</div><div class="muted tnum" style="font-size:12px">â‰ˆ C$${money(toCad(spentLocal))}</div></div>
-    <div class="stat card"><div class="k">Budget (CAD)</div><div class="v tnum">C$${money(totalBudget)}</div><div class="muted" style="font-size:12px">${totalBudget?money(toCad(spentLocal))+' used':'set a budget â†’'}</div></div>
+    <div class="stat card"><div class="k">Spent so far</div><div class="v tnum">${cur.code} ${money(spentLocal)}</div><div class="muted tnum" style="font-size:12px">≈ C$${money(toCad(spentLocal))}</div></div>
+    <div class="stat card"><div class="k">Budget (CAD)</div><div class="v tnum">C$${money(totalBudget)}</div><div class="muted" style="font-size:12px">${totalBudget?money(toCad(spentLocal))+' used':'set a budget →'}</div></div>
     <div class="stat card"><div class="k">Travelers</div><div class="v tnum">${t.party.length}</div><div class="muted" style="font-size:12px">${t.party.map(p=>esc(p.name.split(' ')[0])).join(', ')||'add people in Prep'}</div></div>
   </div>`;
 
   // currency cheat
   const r=cheatRule(cur.perCad||1);
   h+=`<div class="cheat" style="margin-bottom:16px">
-    <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">${svg('wallet')} ${cur.code} â†’ CAD cheat sheet
+    <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600">${svg('wallet')} ${cur.code} → CAD cheat sheet
       <button class="iconbtn" style="margin-left:auto;width:32px;height:32px;color:inherit" data-act="settings" title="Change rate">${svg('edit')}</button></div>
     <div class="rule">${r.text}</div>
     <table><tbody>
-    ${[10,50,100,500,1000].map(v=>`<tr><td>${cur.code} ${v.toLocaleString()}</td><td>â‰ˆ C$${money(v/(cur.perCad||1))}</td></tr>`).join('')}
+    ${[10,50,100,500,1000].map(v=>`<tr><td>${cur.code} ${v.toLocaleString()}</td><td>≈ C$${money(v/(cur.perCad||1))}</td></tr>`).join('')}
     </tbody></table>
-    <div style="font-size:11.5px;margin-top:8px;opacity:.8">Rate: C$1 = ${cur.code} ${cur.perCad} Â· ${r.ex}</div>
+    <div style="font-size:11.5px;margin-top:8px;opacity:.8">Rate: C$1 = ${cur.code} ${cur.perCad} · ${r.ex}</div>
   </div>`;
 
   // budgets
@@ -849,7 +850,7 @@ function viewMoney(t){
     <div style="display:flex;align-items:center;padding:10px 0 6px"><b>Budget by category</b>
       <button class="btn sm ghost" style="margin-left:auto" data-act="edit-budget">${svg('edit')} Set</button></div>`;
   const cats=Object.keys(t.budgets||{}).length?Object.keys(t.budgets):[];
-  if(!cats.length) h+=`<div class="muted" style="padding:0 0 12px;font-size:13px">No budgets set. Tap â€œSetâ€ to add category targets.</div>`;
+  if(!cats.length) h+=`<div class="muted" style="padding:0 0 12px;font-size:13px">No budgets set. Tap “Set” to add category targets.</div>`;
   for(const c of cats){
     const lim=Number(t.budgets[c])||0; const used=toCad(byCat[c]||0); const pct=lim?Math.min(100,used/lim*100):0;
     h+=`<div class="budget-row"><div style="display:flex;font-size:13px"><span><span class="dotc" style="display:inline-block;background:${catColor(c)}"></span> ${catName(c)}</span>
@@ -861,7 +862,7 @@ function viewMoney(t){
   // settle up
   h+=`<div class="card" style="padding:6px 0;margin-bottom:16px"><div style="padding:12px 14px 8px"><b>Settle up</b> <span class="muted" style="font-size:12px">who owes whom</span></div>`;
   const settle=computeSettle(t);
-  if(!settle.length) h+=`<div class="muted" style="padding:0 14px 14px;font-size:13px">Add expenses with â€œpaid byâ€ and â€œsplit amongâ€ to see balances.</div>`;
+  if(!settle.length) h+=`<div class="muted" style="padding:0 14px 14px;font-size:13px">Add expenses with “paid by” and “split among” to see balances.</div>`;
   for(const s of settle) h+=`<div class="settle">${svg('wallet')}<b>${esc(s.from)}</b> owes <b>${esc(s.to)}</b><span class="spacer" style="flex:1"></span><b class="tnum">C$${money(s.amt)}</b></div>`;
   h+=`</div>`;
 
@@ -872,8 +873,8 @@ function viewMoney(t){
     const payer=t.party.find(p=>p.id===e.paidBy);
     h+=`<div class="exp" data-editexp="${e.id}"><span class="dotc" style="background:${catColor(e.category)}"></span>
       <div><div style="font-weight:600;font-size:14px">${esc(e.title)}</div>
-      <div class="muted" style="font-size:12px">${catName(e.category)}${payer?' Â· '+esc(payer.name.split(' ')[0])+' paid':''}${e.date?' Â· '+fmtD(e.date,{month:'short',day:'numeric'}):''}</div></div>
-      <div class="amt tnum">${cur.code} ${money(e.amount)}<small>â‰ˆ C$${money(toCad(e.amount))}</small></div></div>`;
+      <div class="muted" style="font-size:12px">${catName(e.category)}${payer?' · '+esc(payer.name.split(' ')[0])+' paid':''}${e.date?' · '+fmtD(e.date,{month:'short',day:'numeric'}):''}</div></div>
+      <div class="amt tnum">${cur.code} ${money(e.amount)}<small>≈ C$${money(toCad(e.amount))}</small></div></div>`;
   }
   h+=`</div>`;
   return h;
@@ -959,7 +960,7 @@ function sheet(title,body,actions){
 }
 function field(label,inner,hint){return `<div class="field"><label>${label}</label>${inner}${hint?`<div class="hint">${hint}</div>`:''}</div>`;}
 function selCat(sel){return `<div class="catpick" data-catpick>${CATS.map(c=>`<span class="catopt ${sel===c[0]?'on':''}" data-cat="${c[0]}" style="${sel===c[0]?`background:var(${c[2]})`:''}"><span class="dotc" style="background:var(${c[2]})"></span>${c[1]}</span>`).join('')}</div>`;}
-function selWho(t,sel){sel=sel||[];return `<div class="whopick" data-whopick>${t.party.length?t.party.map(p=>`<span class="catopt ${sel.includes(p.id)?'on':''}" data-who="${p.id}" style="${sel.includes(p.id)?`background:${p.color}`:''}"><span class="ava" style="width:18px;height:18px;background:${p.color};border:none">${initials(p.name)}</span>${esc(p.name.split(' ')[0])}</span>`).join(''):'<span class="muted" style="font-size:13px">Add people in Prep â†’ Party</span>'}</div>`;}
+function selWho(t,sel){sel=sel||[];return `<div class="whopick" data-whopick>${t.party.length?t.party.map(p=>`<span class="catopt ${sel.includes(p.id)?'on':''}" data-who="${p.id}" style="${sel.includes(p.id)?`background:${p.color}`:''}"><span class="ava" style="width:18px;height:18px;background:${p.color};border:none">${initials(p.name)}</span>${esc(p.name.split(' ')[0])}</span>`).join(''):'<span class="muted" style="font-size:13px">Add people in Prep → Party</span>'}</div>`;}
 
 // ---- item modal
 function itemModal(id,defaultDay){
@@ -978,8 +979,8 @@ function itemModal(id,defaultDay){
 }
 function daySelect(t,cur){
   const dl=daysList(t);
-  return `<select id="f-day"><option value="" ${!cur?'selected':''}>â˜… Wishlist (unscheduled)</option>
-    ${dl.map((d,i)=>`<option value="${d}" ${cur===d?'selected':''}>Day ${i+1} â€” ${fmtD(d)}</option>`).join('')}</select>`;
+  return `<select id="f-day"><option value="" ${!cur?'selected':''}>★ Wishlist (unscheduled)</option>
+    ${dl.map((d,i)=>`<option value="${d}" ${cur===d?'selected':''}>Day ${i+1} — ${fmtD(d)}</option>`).join('')}</select>`;
 }
 function attachCatWho(){
   mroot().querySelectorAll('[data-catpick] .catopt').forEach(el=>el.onclick=()=>{
@@ -1028,8 +1029,8 @@ function saveTrip(id){
     Object.assign(t,patch);
     if(oldStart&&oldEnd&&patch.start&&patch.end){
       const sD=daysBetween(oldStart,patch.start), eD=daysBetween(oldEnd,patch.end);
-      if(sD===eD){ if(sD!==0) shiftTripDates(t,sD); }  // both ends moved equally â†’ whole trip shifts, plan intact
-      else reconcileTripDates(t);                       // trip lengthened/shortened â†’ keep what fits, orphans â†’ Wishlist
+      if(sD===eD){ if(sD!==0) shiftTripDates(t,sD); }  // both ends moved equally → whole trip shifts, plan intact
+      else reconcileTripDates(t);                       // trip lengthened/shortened → keep what fits, orphans → Wishlist
     } else reconcileTripDates(t);                        // dates newly set/changed
   }
   else{const nt={id:uid(),party:[],legs:[],hotels:[],items:[],expenses:[],budgets:{},packing:[],transports:[],...patch};
@@ -1075,7 +1076,7 @@ function expModal(id){
     field('What for',`<input id="e-title" value="${esc(e.title)}" placeholder="Dinner">`)
     +`<div class="field row2">${field('Amount ('+t.currency.code+')',`<input id="e-amt" type="number" inputmode="decimal" value="${e.amount}">`)}${field('Date',`<input id="e-date" type="date" value="${e.date||todayISO()}">`)}</div>`
     +field('Category',selCat(e.category))
-    +field('Paid by',`<select id="e-payer">${t.party.length?t.party.map(p=>`<option value="${p.id}" ${e.paidBy===p.id?'selected':''}>${esc(p.name)}</option>`).join(''):'<option value="">â€” add people first â€”</option>'}</select>`)
+    +field('Paid by',`<select id="e-payer">${t.party.length?t.party.map(p=>`<option value="${p.id}" ${e.paidBy===p.id?'selected':''}>${esc(p.name)}</option>`).join(''):'<option value="">— add people first —</option>'}</select>`)
     +field('Split among',selWho(t,e.splitAmong&&e.splitAmong.length?e.splitAmong:t.party.map(p=>p.id))),
     `${id?`<button class="btn ghost" data-delexp="${id}">${svg('trash')}</button>`:''}<button class="btn" data-saveexp="${id||''}">Save</button>`);
   attachCatWho();
@@ -1083,7 +1084,7 @@ function expModal(id){
 function dayNameModal(day){
   const t=trip(); const dl=daysList(t); const i=dl.indexOf(day); const cur=dayNameOf(t,day);
   sheet('Name this day',
-    `<p class="muted" style="font-size:13px;margin:0">Day ${i+1} Â· ${fmtD(day,{weekday:'long',month:'long',day:'numeric'})}</p>`
+    `<p class="muted" style="font-size:13px;margin:0">Day ${i+1} · ${fmtD(day,{weekday:'long',month:'long',day:'numeric'})}</p>`
     +field('Day name',`<input id="dn-name" value="${esc(cur)}" placeholder="e.g. Temples & tea, Beach day, Travel day">`,'Moves with the day if you drag it.'),
     `${cur?`<button class="btn ghost" data-cleardayname="${day}">Clear</button>`:''}<button class="btn" data-savedayname="${day}">Save</button>`);
   setTimeout(()=>{const el=document.getElementById('dn-name');if(el){el.focus();el.select();}},40);
@@ -1205,16 +1206,16 @@ try{const th=localStorage.getItem('roam-theme');if(th)document.documentElement.s
 /* ================= PRINT ================= */
 function printAll(){
   const t=trip();const dl=daysList(t);
-  let h=`<h1>${esc(t.name)}</h1><div class="pmeta">${t.start?fmtD(t.start)+' â€“ '+fmtD(t.end):''} Â· ${t.legs.map(l=>esc(l.place)).join(' â†’ ')}</div>`;
-  dl.forEach((d,i)=>{const hot=basedHotel(t,d);h+=`<h2>Day ${i+1} Â· ${fmtD(d,{weekday:'long',month:'short',day:'numeric'})}${hot?' â€” '+esc(hot.name):''}</h2>`;
-    const its=itemsFor(t,d);if(!its.length)h+=`<div class="pi muted">â€”</div>`;
-    its.forEach(it=>h+=`<div class="pi"><b>${it.start||''}</b> ${esc(it.title)} <span style="color:#777">${it.confirmation?'Â· '+esc(it.confirmation):''}</span></div>`);});
+  let h=`<h1>${esc(t.name)}</h1><div class="pmeta">${t.start?fmtD(t.start)+' – '+fmtD(t.end):''} · ${t.legs.map(l=>esc(l.place)).join(' → ')}</div>`;
+  dl.forEach((d,i)=>{const hot=basedHotel(t,d);h+=`<h2>Day ${i+1} · ${fmtD(d,{weekday:'long',month:'short',day:'numeric'})}${hot?' — '+esc(hot.name):''}</h2>`;
+    const its=itemsFor(t,d);if(!its.length)h+=`<div class="pi muted">—</div>`;
+    its.forEach(it=>h+=`<div class="pi"><b>${it.start||''}</b> ${esc(it.title)} <span style="color:#777">${it.confirmation?'· '+esc(it.confirmation):''}</span></div>`);});
   document.getElementById('print-root').innerHTML=h;window.print();
 }
 function printDay(day){
   const t=trip();const dl=daysList(t);const i=dl.indexOf(day);const hot=basedHotel(t,day);
-  let h=`<h1>${esc(t.name)} â€” Day ${i+1}</h1><div class="pmeta">${fmtD(day,{weekday:'long',month:'long',day:'numeric'})}${hot?' Â· Stay: '+esc(hot.name)+(hot.confirmation?' ('+esc(hot.confirmation)+')':''):''}</div>`;
-  itemsFor(t,day).forEach(it=>h+=`<div class="pi"><b>${it.start||'â€”'}</b><div>${esc(it.title)}${it.address?'<br><span style="color:#777;font-size:11px">'+esc(it.address)+'</span>':''}${it.confirmation?'<br><span style="color:#777;font-size:11px">#'+esc(it.confirmation)+'</span>':''}${it.notes?'<br><span style="color:#555;font-size:11px">'+esc(it.notes)+'</span>':''}</div></div>`);
+  let h=`<h1>${esc(t.name)} — Day ${i+1}</h1><div class="pmeta">${fmtD(day,{weekday:'long',month:'long',day:'numeric'})}${hot?' · Stay: '+esc(hot.name)+(hot.confirmation?' ('+esc(hot.confirmation)+')':''):''}</div>`;
+  itemsFor(t,day).forEach(it=>h+=`<div class="pi"><b>${it.start||'—'}</b><div>${esc(it.title)}${it.address?'<br><span style="color:#777;font-size:11px">'+esc(it.address)+'</span>':''}${it.confirmation?'<br><span style="color:#777;font-size:11px">#'+esc(it.confirmation)+'</span>':''}${it.notes?'<br><span style="color:#555;font-size:11px">'+esc(it.notes)+'</span>':''}</div></div>`);
   document.getElementById('print-root').innerHTML=h;window.print();
 }
 
