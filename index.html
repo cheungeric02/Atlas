@@ -402,6 +402,34 @@ input,select,textarea{font:inherit;color:inherit}
 .day.today .wxchip .hi{color:var(--on-primary-c)}
 .wxchip .lo{opacity:.72}
 .wxchip .pop{opacity:.85;display:inline-flex;align-items:center;gap:2px}
+/* photo memories per day */
+.memstrip{display:flex;flex-wrap:wrap;gap:8px;padding:10px 12px 12px}
+.memthumb{width:64px;height:64px;border-radius:12px;border:1px solid var(--line);background:var(--sc-low) center/cover no-repeat;
+  cursor:pointer;display:grid;place-items:center;padding:0;overflow:hidden;transition:transform .12s,box-shadow .12s}
+.memthumb:hover{transform:translateY(-1px);box-shadow:var(--shadow-1)}
+.memthumb svg{width:22px;height:22px;fill:var(--ink-3)}
+.addmedia{width:64px;height:64px;border-radius:12px;border:1.5px dashed var(--line);background:transparent;color:var(--ink-3);
+  cursor:pointer;display:grid;place-items:center;transition:border-color .12s,color .12s}
+.addmedia:hover{border-color:var(--primary);color:var(--primary)}
+.addmedia svg{width:20px;height:20px;fill:currentColor}
+.addmedia.busy{border-style:solid}
+/* documents */
+.docgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px;padding:12px 14px}
+.doctile{display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;padding:12px 10px;border:1px solid var(--line);
+  border-radius:var(--r-m);background:var(--sc-low);cursor:pointer;transition:transform .12s,box-shadow .12s;min-width:0}
+.doctile:hover{transform:translateY(-1px);box-shadow:var(--shadow-1)}
+.doctile .dt-ic{width:46px;height:46px;border-radius:10px;background:color-mix(in srgb,var(--primary) 14%,transparent) center/cover no-repeat;
+  display:grid;place-items:center;flex:0 0 auto}
+.doctile .dt-ic svg{width:24px;height:24px;fill:var(--primary)}
+.doctile .dt-name{font-size:12px;font-weight:600;color:var(--ink-2);width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.addmedia.doc{width:auto;height:auto;flex-direction:column;gap:8px;padding:12px 10px;border-radius:var(--r-m);min-height:88px}
+.addmedia.doc span{font-size:12px;font-weight:600}
+/* media viewer */
+.mediaview{min-height:120px;display:grid;place-items:center;background:var(--sc-low);border-radius:var(--r-m);overflow:hidden}
+.mediaview img{max-width:100%;max-height:60vh;display:block;border-radius:var(--r-m)}
+.mv-load{padding:30px;color:var(--ink-3);font-size:14px;display:flex;align-items:center;gap:8px}
+.mv-doc{padding:34px 20px;text-align:center;color:var(--ink-2)}
+.mv-doc svg{width:48px;height:48px;fill:var(--primary);margin-bottom:10px}
 </style>
 </head>
 <body>
@@ -428,6 +456,10 @@ const I = {
   copy:'<path d="M8 8V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-3v3a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2zm2 0h4a2 2 0 0 1 2 2v5h3V5h-9zM5 10v9h9v-9z"/>',
   close:'<path d="m12 10.6 5-5a1 1 0 1 1 1.4 1.4l-5 5 5 5a1 1 0 0 1-1.4 1.4l-5-5-5 5a1 1 0 0 1-1.4-1.4l5-5-5-5A1 1 0 0 1 7 5.6z"/>',
   bed:'<path d="M3 7a1 1 0 0 1 2 0v4h9V9a2 2 0 0 1 2-2h3a3 3 0 0 1 3 3v7a1 1 0 0 1-2 0v-2H5v2a1 1 0 0 1-2 0z"/>',
+  camera:'<path d="M9 4a1 1 0 0 0-.8.4L7.5 6H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2.5l-.7-1.6A1 1 0 0 0 15 4zm3 5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5z"/>',
+  image:'<path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3 4a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-3 12h14l-4.5-6-3.5 4.5L10 14z"/>',
+  file:'<path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm7 1.5L18.5 9H14a1 1 0 0 1-1-1zM8 13h8v2H8zm0 4h8v2H8z"/>',
+  download:'<path d="M12 3a1 1 0 0 1 1 1v9.6l3.3-3.3a1 1 0 0 1 1.4 1.4l-5 5a1 1 0 0 1-1.4 0l-5-5a1 1 0 1 1 1.4-1.4L11 13.6V4a1 1 0 0 1 1-1zM5 19h14a1 1 0 0 1 0 2H5a1 1 0 0 1 0-2z"/>',
   plane:'<path d="M21 15.5 14 12V5a2 2 0 0 0-4 0v7l-7 3.5V17l7-2v3l-2 1.5V21l3.5-1L15 21v-1.5L13 18v-3l7 2z"/>',
   today:'<path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zm12 7v10H5V9zm-7 2-3 5h2v2h2v-2h2z"/>',
   drag:'<path d="M9 5h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zm-4 4h2v2H9zm4 0h2v2h-2zm-4 4h2v2H9zm4 0h2v2h-2z"/>',
@@ -475,6 +507,7 @@ function syncBusy(){ const m=document.getElementById('modal-root'); if(m&&m.inne
 window.__atlasFB=function(lib){ fbLib=lib; try{
     const app=lib.initializeApp(FB_CONFIG); fbDB=lib.getDatabase(app); atlasRef=lib.ref(fbDB,FB_PATH);
     lib.onValue(atlasRef, snap=>{
+      if(!firebaseReady){ _mediaTrip=null; }   // first connect → let render() (re)subscribe media on the cloud
       firebaseReady=true; setSync('on');
       const v=snap.val();
       if(!v){ if(S.order&&S.order.length) pushRemote(); return; }     // empty cloud → seed from this device
@@ -581,6 +614,7 @@ function render(){
   else if(v==='prep') html+=viewPrep(t);
   html+=`</div></div>`;
   app().innerHTML=html;
+  if(t){ ensureMedia(); paintMedia(); }
   if(S.ui.view==='plan'&&t) afterPlan(t);
   if(S.ui.view==='map'&&t) afterMap(t);
 }
@@ -685,7 +719,9 @@ function viewPlan(t){
       h+=itemHTML(t,it); if(it.end)prevEnd=it.end; else if(it.start)prevEnd=it.start;
     }
     h+=`<div class="addrow"><button class="btn sm ghost" data-additem="${day}">${svg('plus')} Add to day</button></div>`;
-    h+=`</div></div>`;
+    h+=`</div>`; // end daylist
+    h+=`<div class="memstrip" data-memday="${day}"></div>`;
+    h+=`</div>`; // end day
   }
   h+=`</div>`; // end #dayswrap
   // wishlist
@@ -831,6 +867,173 @@ async function loadWeather(t){
       }catch(e){}
     }
   } finally { _wxRunning=false; fillWxChips(); }
+}
+
+/* ================= PHOTOS & DOCUMENTS =================
+   Photo memories per day + trip documents (tickets, passports, PDFs).
+   Bytes live in IndexedDB (offline-first) and, when the shared Firebase is
+   connected, mirror to a SEPARATE path atlas/media/<tripId>/<id> — never the
+   main atlas/main sync blob, so trip data is never bloated by media. */
+let _idbP=null;
+function idb(){
+  if(_idbP) return _idbP;
+  _idbP=new Promise((res,rej)=>{ let r; try{ r=indexedDB.open('atlas-media',1); }catch(e){ rej(e); return; }
+    r.onupgradeneeded=()=>{ const db=r.result; if(!db.objectStoreNames.contains('media')) db.createObjectStore('media',{keyPath:'id'}); };
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); });
+  return _idbP;
+}
+function idbAll(){ return idb().then(db=>new Promise(res=>{ const q=db.transaction('media','readonly').objectStore('media').getAll(); q.onsuccess=()=>res(q.result||[]); q.onerror=()=>res([]); })).catch(()=>[]); }
+function idbGet(id){ return idb().then(db=>new Promise(res=>{ const q=db.transaction('media','readonly').objectStore('media').get(id); q.onsuccess=()=>res(q.result||null); q.onerror=()=>res(null); })).catch(()=>null); }
+function idbPut(rec){ return idb().then(db=>new Promise(res=>{ const tx=db.transaction('media','readwrite'); tx.objectStore('media').put(rec); tx.oncomplete=()=>res(); tx.onerror=()=>res(); })).catch(()=>{}); }
+function idbDel(id){ return idb().then(db=>new Promise(res=>{ const tx=db.transaction('media','readwrite'); tx.objectStore('media').delete(id); tx.oncomplete=()=>res(); tx.onerror=()=>res(); })).catch(()=>{}); }
+
+const stripData=m=>({id:m.id,tripId:m.tripId,day:m.day??null,kind:m.kind,name:m.name,type:m.type,size:m.size,thumb:m.thumb||null,ts:m.ts});
+let _media=[], _mediaTrip=null, _mediaOff=null;
+function ensureMedia(){
+  const t=trip(); if(!t){ _media=[]; _mediaTrip=null; return; }
+  if(_mediaTrip===t.id) return;
+  _mediaTrip=t.id; _media=[];
+  loadMediaLocal(t.id);
+  subscribeMedia(t.id);
+}
+function loadMediaLocal(tripId){
+  return idbAll().then(all=>{
+    if(_mediaTrip!==tripId) return;
+    _media=all.filter(m=>m.tripId===tripId).map(stripData).sort((a,b)=>(a.ts||0)-(b.ts||0));
+    paintMedia();
+  });
+}
+function subscribeMedia(tripId){
+  if(_mediaOff){ try{_mediaOff();}catch(e){} _mediaOff=null; }
+  if(!(firebaseReady&&fbLib&&fbDB)) return;   // local-only until the cloud connects
+  try{
+    const r=fbLib.ref(fbDB,'atlas/media/'+tripId);
+    const cb=snap=>{ reconcileMedia(tripId,snap.val()||{}); };
+    fbLib.onValue(r,cb);
+    _mediaOff=()=>{ try{ fbLib.off(r,'value',cb); }catch(e){} };
+  }catch(e){}
+}
+async function reconcileMedia(tripId,remoteMap){
+  const local=(await idbAll()).filter(m=>m.tripId===tripId);
+  const remoteIds=new Set(Object.keys(remoteMap));
+  for(const id of remoteIds){ const r=remoteMap[id]; r.synced=true; await idbPut(r); }
+  for(const m of local){
+    if(remoteIds.has(m.id)) continue;
+    if(m.synced) await idbDel(m.id);   // was synced, now gone from cloud → deleted elsewhere → drop locally
+    else pushMedia(m);                 // added offline, never uploaded → push it up (don't lose it)
+  }
+  if(_mediaTrip===tripId) loadMediaLocal(tripId);
+}
+function pushMedia(rec){
+  if(!(firebaseReady&&fbLib&&fbDB)) return;
+  try{ const p=fbLib.set(fbLib.ref(fbDB,'atlas/media/'+rec.tripId+'/'+rec.id),{...rec,synced:true});
+    const mark=()=>{ rec.synced=true; idbPut(rec); };
+    if(p&&p.then) p.then(mark).catch(()=>{}); else mark();
+  }catch(e){}
+}
+async function mediaAddRec(rec){
+  rec.synced=false;
+  await idbPut(rec);
+  if(_mediaTrip===rec.tripId){ _media.push(stripData(rec)); _media.sort((a,b)=>(a.ts||0)-(b.ts||0)); paintMedia(); }
+  pushMedia(rec);
+}
+async function mediaDelete(id){
+  const rec=_media.find(m=>m.id===id);
+  await idbDel(id);
+  _media=_media.filter(m=>m.id!==id); paintMedia();
+  if(rec&&firebaseReady&&fbLib&&fbDB){ try{ fbLib.remove(fbLib.ref(fbDB,'atlas/media/'+rec.tripId+'/'+id)); }catch(e){} }
+  closeModal();
+}
+// --- file processing: images are compressed + thumbnailed; other files stored as-is (size-capped) ---
+const MAX_FILE=4*1024*1024;   // 4 MB after processing
+function readDataURL(file){ return new Promise(res=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>res(null); r.readAsDataURL(file); }); }
+function scaleImage(file,maxDim,q){
+  return new Promise(res=>{ const url=URL.createObjectURL(file); const img=new Image();
+    img.onload=()=>{ URL.revokeObjectURL(url); let w=img.naturalWidth,h=img.naturalHeight;
+      const s=Math.min(1,maxDim/Math.max(w,h)); w=Math.max(1,Math.round(w*s)); h=Math.max(1,Math.round(h*s));
+      const c=document.createElement('canvas'); c.width=w; c.height=h;
+      const ctx=c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.drawImage(img,0,0,w,h);
+      try{ res(c.toDataURL('image/jpeg',q)); }catch(e){ res(null); } };
+    img.onerror=()=>{ URL.revokeObjectURL(url); res(null); }; img.src=url; });
+}
+async function processFile(file,kind,day){
+  const isImg=/^image\//.test(file.type);
+  let data,thumb=null,type=file.type;
+  if(isImg){
+    data=await scaleImage(file,1600,0.72); thumb=await scaleImage(file,420,0.6); type='image/jpeg';
+    if(!data){ alert('Could not read “'+(file.name||'that image')+'”.'); return null; }
+  }else{
+    if(file.size>MAX_FILE){ alert('“'+file.name+'” is '+fmtBytes(file.size)+' — files must be under '+fmtBytes(MAX_FILE)+'. Try compressing it first.'); return null; }
+    data=await readDataURL(file); if(!data) return null;
+  }
+  return {id:uid(),tripId:_mediaTrip||(trip()&&trip().id),day:kind==='photo'?(day??null):null,kind,name:file.name||(kind==='photo'?'Photo':'Document'),type,size:data.length,thumb,data,ts:Date.now()};
+}
+function fmtBytes(n){ return n>1048576?(n/1048576).toFixed(1)+' MB':Math.max(1,Math.round(n/1024))+' KB'; }
+// hidden picker
+let _pickCtx=null;
+function pickFiles(kind,day){
+  _pickCtx={kind,day};
+  let inp=document.getElementById('mediaPicker');
+  if(!inp){ inp=document.createElement('input'); inp.type='file'; inp.id='mediaPicker'; inp.style.display='none';
+    inp.addEventListener('change',onPick); document.body.appendChild(inp); }
+  inp.multiple=true;
+  inp.accept = kind==='photo' ? 'image/*' : 'image/*,application/pdf,.pdf';
+  inp.value=''; inp.click();
+}
+async function onPick(e){
+  const files=[...(e.target.files||[])]; if(!files.length||!_pickCtx) return;
+  const {kind,day}=_pickCtx; _pickCtx=null;
+  const strip = day!=null ? document.querySelector(`[data-memday="${day}"]`) : document.getElementById('docgrid');
+  if(strip){ const b=strip.querySelector('.addmedia'); if(b){ b.classList.add('busy'); b.innerHTML=`<span class="spin"></span>`; } }
+  for(const f of files){ const rec=await processFile(f,kind,day); if(rec) await mediaAddRec(rec); }
+  paintMedia();
+}
+// --- rendering into placeholders left by the views ---
+function paintMedia(){
+  document.querySelectorAll('[data-memday]').forEach(el=>{
+    const day=el.dataset.memday;
+    const ph=_media.filter(m=>m.kind==='photo'&&m.day===day);
+    el.innerHTML = ph.map(m=>mediaThumb(m)).join('')
+      + `<button class="addmedia" data-addphoto="${day}" title="Add photos">${svg('camera')}</button>`;
+  });
+  const dg=document.getElementById('docgrid');
+  if(dg){
+    const docs=_media.filter(m=>m.kind==='doc');
+    dg.innerHTML = docs.map(m=>docTile(m)).join('')
+      + `<button class="addmedia doc" data-adddoc="1" title="Add a document">${svg('plus')}<span>Add file</span></button>`;
+  }
+}
+function mediaThumb(m){
+  const bg=m.thumb?`style="background-image:url('${m.thumb}')"`:'';
+  return `<button class="memthumb" data-viewmedia="${m.id}" ${bg} aria-label="${esc(m.name)}">${m.thumb?'':svg('image')}</button>`;
+}
+function docTile(m){
+  const img=/^image\//.test(m.type)&&m.thumb;
+  return `<button class="doctile" data-viewmedia="${m.id}">
+    <span class="dt-ic" ${img?`style="background-image:url('${m.thumb}')"`:''}>${img?'':svg(/pdf/.test(m.type)?'file':'file')}</span>
+    <span class="dt-name">${esc(m.name)}</span></button>`;
+}
+// --- viewer / lightbox ---
+async function mediaModal(id){
+  const meta=_media.find(m=>m.id===id); if(!meta) return;
+  sheet(esc(meta.name),`<div class="mediaview" id="mediaview"><div class="mv-load"><span class="spin"></span> Loading…</div></div>
+    ${meta.day?`<div class="hint">Photo from ${fmtD(meta.day)}</div>`:''}`,
+    `<button class="btn ghost" data-delmedia="${id}">${svg('trash')} Delete</button>
+     <button class="btn" data-openmedia="${id}">${svg('download')} Open / Save</button>`);
+  const rec=await idbGet(id); const box=document.getElementById('mediaview'); if(!box) return;
+  if(!rec||!rec.data){ box.innerHTML='<div class="mv-load">Not available on this device yet.</div>'; return; }
+  if(/^image\//.test(rec.type)) box.innerHTML=`<img src="${rec.data}" alt="${esc(rec.name)}">`;
+  else box.innerHTML=`<div class="mv-doc">${svg('file')}<div>${esc(rec.name)}</div><div class="hint">${(rec.type||'file')} · ${fmtBytes(rec.size||0)}</div></div>`;
+}
+async function openMedia(id){
+  const rec=await idbGet(id); if(!rec||!rec.data) return;
+  try{
+    const parts=rec.data.split(','), mime=(parts[0].match(/:(.*?);/)||[])[1]||rec.type||'application/octet-stream';
+    const bin=atob(parts[1]); const arr=new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)arr[i]=bin.charCodeAt(i);
+    const url=URL.createObjectURL(new Blob([arr],{type:mime}));
+    const a=document.createElement('a'); a.href=url; a.target='_blank'; a.rel='noopener'; a.download=rec.name||'file';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000);
+  }catch(e){ window.open(rec.data,'_blank'); }
 }
 
 /* ================= VIEW: MAP ================= */
@@ -1179,6 +1382,11 @@ function viewBookings(t){
       <span class="conf">${esc(x.confirmation)}</span></div></div>`; });
     h+=`</div>`;
   }
+
+  // travel documents (tickets, passports, PDFs) — stored per device + synced separately
+  h+=`<div class="card" style="padding:0;margin-top:16px"><div class="bk-sec">${svg('file')} Travel documents</div>
+    <div class="docwrap"><div class="docgrid" id="docgrid"></div>
+    <div class="hint" style="padding:0 14px 12px">Boarding passes, hotel confirmations, passports, insurance… stored on your device and synced to your group. Files up to 4 MB.</div></div></div>`;
   return h;
 }
 
@@ -1526,6 +1734,11 @@ document.addEventListener('click',e=>{
   if((el=T.closest('[data-nav]'))){S.ui.view=el.dataset.nav;S.ui._jumped=false;save();render();return;}
   if((el=find('data-mapday'))){S.ui.mapDay=el.dataset.mapday;_mapView=null;_viewApplied=false;save();render();return;}
   if((el=find('data-wxday'))){S.ui.wxUnit=S.ui.wxUnit==='f'?'c':'f';save();fillWxChips();return;}
+  if((el=find('data-addphoto'))){pickFiles('photo',el.dataset.addphoto);return;}
+  if((el=find('data-adddoc'))){pickFiles('doc',null);return;}
+  if((el=find('data-viewmedia'))){mediaModal(el.dataset.viewmedia);return;}
+  if((el=find('data-openmedia'))){openMedia(el.dataset.openmedia);return;}
+  if((el=find('data-delmedia'))){const id=el.dataset.delmedia;confirmDel('Delete this file? This removes it for everyone in the trip.',()=>mediaDelete(id));return;}
   if((el=find('data-open'))){S.active=el.dataset.open;S.ui.view='plan';S.ui._jumped=false;save();render();return;}
   if(find('data-act')){ const a=find('data-act').dataset.act; act(a); return; }
   if((el=find('data-dup'))){dupTrip(el.dataset.dup);return;}
@@ -1698,7 +1911,7 @@ setInterval(()=>{const c=document.querySelector('.clock');if(c&&trip())c.outerHT
       import('https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js'),
       import('https://www.gstatic.com/firebasejs/10.12.5/firebase-database.js')
     ]);
-    window.__atlasFB && window.__atlasFB({initializeApp:app.initializeApp,getDatabase:dbm.getDatabase,ref:dbm.ref,onValue:dbm.onValue,set:dbm.set,get:dbm.get});
+    window.__atlasFB && window.__atlasFB({initializeApp:app.initializeApp,getDatabase:dbm.getDatabase,ref:dbm.ref,onValue:dbm.onValue,set:dbm.set,get:dbm.get,remove:dbm.remove,off:dbm.off});
   }catch(e){ /* sandboxed/offline — stay local-only */ }
 </script>
 
