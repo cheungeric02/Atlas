@@ -1,6 +1,6 @@
 /* Atlas service worker — offline app shell + runtime font cache.
    Firebase realtime traffic is never intercepted, so live sync is unaffected. */
-const CACHE = 'atlas-v1';
+const CACHE = 'atlas-v2';
 const SHELL = [
   './',
   './index.html',
@@ -38,7 +38,15 @@ self.addEventListener('fetch', e => {
   if (req.mode === 'navigate' || (url.origin === location.origin && url.pathname.endsWith('index.html'))) {
     e.respondWith(
       fetch(req)
-        .then(res => { const cp = res.clone(); caches.open(CACHE).then(c => c.put('./index.html', cp)); return res; })
+        .then(res => {
+          // Only cache a genuinely good full document — never a 404/500 or an
+          // opaque error page (e.g. GitHub Pages mid-deploy), which would
+          // otherwise poison the offline fallback and break future refreshes.
+          if (res.ok && res.status === 200 && res.type === 'basic') {
+            const cp = res.clone(); caches.open(CACHE).then(c => c.put('./index.html', cp));
+          }
+          return res;
+        })
         .catch(() => caches.match('./index.html').then(r => r || caches.match('./')))
     );
     return;
@@ -48,7 +56,8 @@ self.addEventListener('fetch', e => {
   if (url.origin === location.origin) {
     e.respondWith(
       caches.match(req).then(r => r || fetch(req).then(res => {
-        const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)); return res;
+        if (res.ok) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)); }
+        return res;
       }))
     );
     return;
@@ -59,7 +68,8 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       caches.match(req).then(cached => {
         const net = fetch(req).then(res => {
-          const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)); return res;
+          if (res.ok) { const cp = res.clone(); caches.open(CACHE).then(c => c.put(req, cp)); }
+          return res;
         }).catch(() => cached);
         return cached || net;
       })
