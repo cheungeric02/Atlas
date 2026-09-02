@@ -391,6 +391,17 @@ input,select,textarea{font:inherit;color:inherit}
 .leaflet-bar a:hover{background:var(--sc)}
 .mapempty{text-align:center;padding:44px 20px;color:var(--ink-3)}
 .mapempty .big{opacity:.5}.mapempty .big svg{width:52px;height:52px}
+/* per-day weather chip */
+.wxchip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 9px;border-radius:999px;
+  background:color-mix(in srgb,var(--dc,var(--primary)) 13%,transparent);color:var(--ink-2);border:1px solid transparent;
+  cursor:pointer;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;transition:background .15s}
+.wxchip:hover{background:color-mix(in srgb,var(--dc,var(--primary)) 22%,transparent)}
+.day.today .wxchip{background:rgba(255,255,255,.22);color:var(--on-primary-c)}
+.wxchip .em{font-size:13px;filter:saturate(1.1)}
+.wxchip .hi{color:var(--ink)}
+.day.today .wxchip .hi{color:var(--on-primary-c)}
+.wxchip .lo{opacity:.72}
+.wxchip .pop{opacity:.85;display:inline-flex;align-items:center;gap:2px}
 </style>
 </head>
 <body>
@@ -651,7 +662,7 @@ function viewPlan(t){
     const day=dl[di]; const isToday=day===today; const dc=dayColor(di);
     const hot=basedHotel(t,day); const leg=legFor(t,day); const isNight=di<dl.length-1;
     const nm=dayNameOf(t,day);
-    let right='';
+    let right=`<span class="wxchip" id="wx-${day}" data-wxday="${day}" hidden></span>`;
     if(isToday) right+=`<span class="todaytag">● Today</span>`;
     if(hot) right+=`<button class="based" data-edithotel="${hot.id}" title="View / edit reservation">${svg('bed')} ${esc(hot.name)}</button>`;
     else if(isNight) right+=`<button class="based nohotel" data-addhotel="${day}" title="No hotel booked for this night">${svg('bed')} No hotel</button>`;
@@ -745,6 +756,81 @@ function afterPlan(t){
   // auto jump to today
   const td=document.querySelector('.day.today');
   if(td && !S.ui._jumped){ td.scrollIntoView({block:'center',behavior:'smooth'}); S.ui._jumped=true; }
+  loadWeather(t);
+}
+
+/* ================= WEATHER (Open-Meteo, no key) =================
+   Forecast reaches ~16 days ahead; days beyond that show no chip.
+   Coords + forecast are fetched per city (leg) and kept in memory only —
+   weather is transient, so nothing is written to the trip or synced. */
+const _wx={};       // iso -> {code,tmax,tmin,pop}  (raw °C)
+const _wxGeo={};    // place name -> {lat,lng} | 'fail'
+const _wxDone={};   // region cacheKey -> true (fetched this session)
+let _wxRunning=false;
+function wxEmoji(c){
+  if(c===0) return['☀️','Clear'];
+  if(c===1) return['🌤️','Mostly clear'];
+  if(c===2) return['⛅','Partly cloudy'];
+  if(c===3) return['☁️','Overcast'];
+  if(c===45||c===48) return['🌫️','Fog'];
+  if(c>=51&&c<=57) return['🌦️','Drizzle'];
+  if(c>=61&&c<=67) return['🌧️','Rain'];
+  if(c>=71&&c<=77) return['🌨️','Snow'];
+  if(c>=80&&c<=82) return['🌦️','Showers'];
+  if(c>=85&&c<=86) return['🌨️','Snow showers'];
+  if(c>=95) return['⛈️','Thunderstorm'];
+  return['🌡️',''];
+}
+function wxTemp(cel){ return S.ui.wxUnit==='f' ? Math.round(cel*9/5+32) : Math.round(cel); }
+function fillWxChips(){
+  const u=S.ui.wxUnit==='f'?'F':'C';
+  document.querySelectorAll('.wxchip[data-wxday]').forEach(el=>{
+    const w=_wx[el.dataset.wxday];
+    if(!w){ el.hidden=true; return; }
+    const[em,label]=wxEmoji(w.code);
+    let html=`<span class="em">${em}</span><span class="hi">${wxTemp(w.tmax)}°</span><span class="lo">/${wxTemp(w.tmin)}°</span>`;
+    if(w.pop!=null&&w.pop>=20) html+=`<span class="pop">💧${w.pop}%</span>`;
+    el.innerHTML=html;
+    el.title=`${label} · High ${wxTemp(w.tmax)}°${u} / Low ${wxTemp(w.tmin)}°${u}`+(w.pop!=null?` · ${w.pop}% precip`:'')+' · tap to switch °C/°F';
+    el.hidden=false;
+  });
+}
+async function wxGeocode(name){
+  if(_wxGeo[name]) return _wxGeo[name]==='fail'?null:_wxGeo[name];
+  try{
+    const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name='+encodeURIComponent(name));
+    const d=await r.json();
+    if(d&&d.results&&d.results[0]){ const g={lat:d.results[0].latitude,lng:d.results[0].longitude}; _wxGeo[name]=g; return g; }
+    _wxGeo[name]='fail'; return null;
+  }catch(e){ return null; }   // network error → leave uncached, retry next open
+}
+async function loadWeather(t){
+  if(_wxRunning||!t) return;
+  const dl=daysList(t); if(!dl.length) return;
+  const today=todayISO(), maxD=addDays(today,15);
+  const win=dl.filter(d=>d>=today&&d<=maxD);
+  if(!win.length){ fillWxChips(); return; }   // whole trip beyond forecast horizon
+  // group in-window days by region (leg place, else trip destination)
+  const groups={};
+  for(const d of win){ const l=legFor(t,d); const name=(l&&l.place)||t.dest; if(!name) continue;
+    (groups[name]=groups[name]||[]).push(d); }
+  _wxRunning=true;
+  try{
+    for(const name in groups){
+      const days=groups[name].sort(), key=name+'|'+days[0]+'|'+days[days.length-1];
+      if(_wxDone[key]){ continue; }
+      const g=await wxGeocode(name); if(!g) continue;
+      try{
+        const url='https://api.open-meteo.com/v1/forecast?latitude='+g.lat+'&longitude='+g.lng
+          +'&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto'
+          +'&start_date='+days[0]+'&end_date='+days[days.length-1];
+        const r=await fetch(url); const d=await r.json();
+        const dy=d&&d.daily;
+        if(dy&&dy.time){ dy.time.forEach((iso,i)=>{ _wx[iso]={code:dy.weather_code[i],tmax:dy.temperature_2m_max[i],tmin:dy.temperature_2m_min[i],pop:dy.precipitation_probability_max?dy.precipitation_probability_max[i]:null}; });
+          _wxDone[key]=true; fillWxChips(); }
+      }catch(e){}
+    }
+  } finally { _wxRunning=false; fillWxChips(); }
 }
 
 /* ================= VIEW: MAP ================= */
@@ -768,7 +854,8 @@ const _geoCache={};
 let _geoQ=[], _geoBusy=false, _geoSaveT=null;
 function scheduleGeoSave(){ clearTimeout(_geoSaveT); _geoSaveT=setTimeout(()=>{ try{save();}catch(e){} },1400); }
 function geoCandidates(t,rec,kind){
-  const base=((rec.address||rec.title||rec.name)||'').trim(); if(!base) return [];
+  const base=((rec.address||rec.title||rec.name||rec.place)||'').trim(); if(!base) return [];
+  if(kind==='leg'){ const c=[base]; if(t.dest&&t.dest!==base) c.push(base+', '+t.dest); return [...new Set(c)]; }
   const day = kind==='hotel' ? rec.checkIn : rec.day;
   const c=[];
   if(day){ const l=legFor(t,day); if(l&&l.place) c.push(base+', '+l.place); }   // most specific
@@ -1438,6 +1525,7 @@ document.addEventListener('click',e=>{
   // nav
   if((el=T.closest('[data-nav]'))){S.ui.view=el.dataset.nav;S.ui._jumped=false;save();render();return;}
   if((el=find('data-mapday'))){S.ui.mapDay=el.dataset.mapday;_mapView=null;_viewApplied=false;save();render();return;}
+  if((el=find('data-wxday'))){S.ui.wxUnit=S.ui.wxUnit==='f'?'c':'f';save();fillWxChips();return;}
   if((el=find('data-open'))){S.active=el.dataset.open;S.ui.view='plan';S.ui._jumped=false;save();render();return;}
   if(find('data-act')){ const a=find('data-act').dataset.act; act(a); return; }
   if((el=find('data-dup'))){dupTrip(el.dataset.dup);return;}
