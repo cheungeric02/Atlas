@@ -321,6 +321,35 @@ input,select,textarea{font:inherit;color:inherit}
 .syncpill.on::before{background:var(--primary);box-shadow:0 0 0 3px color-mix(in srgb,var(--primary) 22%,transparent)}
 .syncpill.err::before{background:#e0574f}
 @media(max-width:520px){ .syncpill{font-size:0;gap:0;padding:7px} .syncpill::before{width:8px;height:8px} }
+
+/* ---------- Countdown / reminders ---------- */
+.cdchip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:var(--sc);color:var(--ink-2);white-space:nowrap;flex:none}
+.cdchip.soon{background:color-mix(in srgb,var(--secondary) 22%,transparent);color:var(--secondary)}
+.cdchip.today{background:color-mix(in srgb,var(--danger) 16%,transparent);color:var(--danger)}
+.cdchip.past{opacity:.5}
+.rem{display:flex;align-items:center;gap:12px;padding:11px 14px;border-top:1px solid var(--line)}
+.rem:first-child{border-top:none}
+.rem .ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;background:var(--sc)}
+.rem .body{flex:1;min-width:0}
+.rem .body b{font-weight:600;font-size:14px}
+.rem .body .s{font-size:12px;color:var(--ink-3)}
+
+/* ---------- Comments ---------- */
+.cmtcount{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;color:var(--ink-3)}
+.cmtlist{display:flex;flex-direction:column;gap:8px}
+.cmt{background:var(--sc-low);border:1px solid var(--line);border-radius:12px;padding:9px 11px}
+.cmt .h{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:3px}
+.cmt .h b{font-weight:700;color:var(--ink)}
+.cmt .h .t{color:var(--ink-3);font-size:11px}
+.cmt .h .x{margin-left:auto;color:var(--ink-3);cursor:pointer}
+.cmt .txt{font-size:13.5px;white-space:pre-wrap;word-break:break-word}
+.cmtform{display:flex;gap:8px;align-items:flex-end}
+.cmtform textarea{flex:1;min-height:40px}
+
+/* ---------- Converter ---------- */
+.conv{display:grid;grid-template-columns:1fr auto 1fr;gap:10px;align-items:end}
+.conv .conv-eq{padding-bottom:11px;color:var(--ink-3);font-size:20px;display:grid;place-items:center}
+.conv .field input{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums}
 </style>
 </head>
 <body>
@@ -355,6 +384,8 @@ const I = {
   people:'<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm6 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 19a6 6 0 0 1 12 0zm12.5-5.9A6 6 0 0 1 21 19h-4a7.9 7.9 0 0 0-2.2-4.6z"/>',
   print:'<path d="M6 3h12v4H6zm-2 6h16a2 2 0 0 1 2 2v6h-4v4H6v-4H2v-6a2 2 0 0 1 2-2zm4 6v6h8v-6zm10-2a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"/>',
   sun:'<path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5v3m0 14v3M4.2 4.2l2.1 2.1m11.4 11.4 2.1 2.1M2 12h3m14 0h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+  chat:'<path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H8l-4 4V5a1 1 0 0 1 1-1zm3 5h10v2H7zm0 4h7v2H7z"/>',
+  bell:'<path d="M12 2a6 6 0 0 0-6 6v3.6l-1.7 3.4A1 1 0 0 0 5.2 16h13.6a1 1 0 0 0 .9-1.4L18 11.6V8a6 6 0 0 0-6-6zm0 20a3 3 0 0 0 3-3H9a3 3 0 0 0 3 3z"/>',
 };
 const svg=(n,cls='')=>`<svg viewBox="0 0 24 24" fill="currentColor" ${cls?`class="${cls}"`:''} aria-hidden="true">${I[n]||''}</svg>`;
 
@@ -435,6 +466,22 @@ function reconcileTripDates(t){
   if(t.dayNames)Object.keys(t.dayNames).forEach(k=>{if(!inRange.has(k))delete t.dayNames[k];});
 }
 function money(n){return (n<0?'-':'')+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
+// Countdown info for a reservation date. Positive days = future.
+function cdInfo(dateISO){
+  if(!dateISO) return null;
+  const d=daysBetween(todayISO(),dateISO);
+  if(d<0) return {days:d,label:Math.abs(d)+'d ago',cls:'past'};
+  if(d===0) return {days:0,label:'Today',cls:'today'};
+  if(d===1) return {days:1,label:'Tomorrow',cls:'soon'};
+  if(d<=3) return {days:d,label:'in '+d+' days',cls:'soon'};
+  return {days:d,label:'in '+d+' days',cls:''};
+}
+function cdChip(dateISO){const c=cdInfo(dateISO);return c?`<span class="cdchip ${c.cls}">${svg('clock')}${c.label}</span>`:'';}
+
+/* ================= WHO AM I (for comments) ================= */
+const ME_KEY='atlas-me';
+function myName(){ try{return localStorage.getItem(ME_KEY)||'';}catch(e){return '';} }
+function setMyName(n){ try{localStorage.setItem(ME_KEY,n);}catch(e){} }
 
 /* ================= CURRENCY CHEAT ================= */
 function cheatRule(perCad){
@@ -641,7 +688,7 @@ function itemHTML(t,it){
         ${it.confirmation?`<span>${svg('bag')}${esc(it.confirmation)}</span>`:''}
       </div>
       ${it.notes?`<div class="sub" style="color:var(--ink-2)">${esc(it.notes)}</div>`:''}
-      ${who.length?`<div class="who">${who.map(p=>`<span class="ava" style="background:${p.color}" title="${esc(p.name)}">${initials(p.name)}</span>`).join('')}</div>`:''}
+      ${(who.length||(it.comments&&it.comments.length))?`<div class="who" style="align-items:center">${who.map(p=>`<span class="ava" style="background:${p.color}" title="${esc(p.name)}">${initials(p.name)}</span>`).join('')}${(it.comments&&it.comments.length)?`<span class="cmtcount" style="margin-left:${who.length?'8px':'0'}">${svg('chat')} ${it.comments.length}</span>`:''}</div>`:''}
     </div>
     <div class="acts">
       ${it.address||it.title?`<button class="iconbtn" style="width:34px;height:34px" data-gmap="${it.id}" title="Open in Google Maps">${svg('pin')}</button>`:''}
@@ -759,11 +806,34 @@ function reorderDays(fromDay,toIndex){
 }
 
 /* ================= VIEW: BOOKINGS ================= */
+function upcomingReservations(t){
+  const out=[];
+  (t.transports||[]).forEach(x=>{ if(x.date) out.push({date:x.date,time:x.time||'',type:'transport',icon:'plane',
+    title:(x.flightNo?esc(x.flightNo)+' · ':'')+esc(x.from||'?')+' → '+esc(x.to||'?'),sub:esc(x.mode||'Transport'),id:x.id,ref:'transport'}); });
+  (t.hotels||[]).forEach(x=>{ if(x.checkIn) out.push({date:x.checkIn,time:'',type:'hotel',icon:'bed',
+    title:'Check in — '+esc(x.name),sub:nights(x.checkIn,x.checkOut)+' nights',id:x.id,ref:'hotel'}); });
+  (t.items||[]).forEach(x=>{ if(x.confirmation&&x.day) out.push({date:x.day,time:x.start||'',type:'item',icon:'ticket',
+    title:esc(x.title),sub:'Reservation'+(x.confirmation?' · '+esc(x.confirmation):''),id:x.id,ref:'item'}); });
+  return out;
+}
+function remindersCard(t){
+  const today=todayISO();
+  const up=upcomingReservations(t).filter(r=>r.date>=today).sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time));
+  if(!up.length) return '';
+  const rows=up.slice(0,6).map(r=>`<div class="rem" data-edit${r.ref}="${r.id}">
+    <div class="ic" style="color:var(--cat-${r.type==='transport'?'transport':r.type==='hotel'?'hotel':'sight'})">${svg(r.icon)}</div>
+    <div class="body"><b>${r.title}</b><div class="s">${fmtD(r.date,{weekday:'short',month:'short',day:'numeric'})}${r.time?' · '+esc(r.time):''} · ${r.sub}</div></div>
+    ${cdChip(r.date)}</div>`).join('');
+  return `<div class="card" style="padding:0;margin-bottom:16px">
+    <div class="cov-head"><span style="display:inline-flex;gap:8px;align-items:center;color:var(--secondary)">${svg('bell')}<b>Coming up</b></span>
+      <span class="muted" style="margin-left:auto;font-size:12px">${up.length} upcoming</span></div>${rows}</div>`;
+}
 function viewBookings(t){
   const dl=daysList(t);
   let h=`<div class="section-title"><h2>Bookings</h2><div class="spacer"></div>
     <button class="btn sm" data-act="add-hotel">${svg('bed')} Hotel</button>
     <button class="btn sm ghost" data-act="add-transport">${svg('plane')} Transport</button></div>`;
+  h+=remindersCard(t);
 
   // hotel coverage / gap detection
   if(dl.length>1){
@@ -786,9 +856,13 @@ function viewBookings(t){
   if(!t.transports.length) h+=`<div class="muted" style="padding:0 14px 14px;font-size:13px">No flights or transport added yet.</div>`;
   [...t.transports].sort((a,b)=>(a.date||'~').localeCompare(b.date||'~')).forEach(x=>{
     h+=`<div class="book" data-edittransport="${x.id}"><div class="ic" style="color:var(--cat-transport)">${svg('plane')}</div>
-      <div class="body"><div style="font-weight:600">${esc(x.from||'?')} → ${esc(x.to||'?')} <span class="muted" style="font-weight:400;font-size:12px">${esc(x.mode||'')}</span></div>
-      <div class="muted" style="font-size:12.5px">${x.date?fmtD(x.date):'no date'}${x.time?' · '+esc(x.time):''}</div>
-      ${x.confirmation?`<span class="conf">${esc(x.confirmation)}</span>`:''}</div></div>`;
+      <div class="body">
+        <div style="font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${esc(x.from||'?')} → ${esc(x.to||'?')} <span class="muted" style="font-weight:400;font-size:12px">${esc(x.mode||'')}</span>${x.flightNo?`<span class="conf" style="margin:0">${esc(x.flightNo)}</span>`:''}</div>
+        <div class="muted" style="font-size:12.5px">${x.date?fmtD(x.date):'no date'}${x.time?' · dep '+esc(x.time):''}${x.arrive?' · arr '+esc(x.arrive):''}</div>
+        ${x.confirmation?`<span class="conf">Conf: ${esc(x.confirmation)}</span>`:''}
+        ${x.notes?`<div class="muted" style="font-size:12px;margin-top:3px">${esc(x.notes)}</div>`:''}
+      </div>
+      ${x.date?`<span style="align-self:center">${cdChip(x.date)}</span>`:''}</div>`;
   });
   h+=`</div>`;
 
@@ -800,7 +874,8 @@ function viewBookings(t){
       <div class="body"><div style="font-weight:600">${esc(x.name)}</div>
       <div class="muted" style="font-size:12.5px">${x.checkIn?fmtD(x.checkIn)+' → '+fmtD(x.checkOut)+' · '+nights(x.checkIn,x.checkOut)+' nights':'no dates'}</div>
       ${x.confirmation?`<span class="conf">${esc(x.confirmation)}</span>`:''}
-      ${x.notes?`<div class="muted" style="font-size:12px;margin-top:3px">${esc(x.notes)}</div>`:''}</div></div>`;
+      ${x.notes?`<div class="muted" style="font-size:12px;margin-top:3px">${esc(x.notes)}</div>`:''}</div>
+      ${x.checkIn?`<span style="align-self:center">${cdChip(x.checkIn)}</span>`:''}</div>`;
   });
   h+=`</div>`;
 
@@ -844,6 +919,16 @@ function viewMoney(t){
     </tbody></table>
     <div style="font-size:11.5px;margin-top:8px;opacity:.8">Rate: C$1 = ${cur.code} ${cur.perCad} · ${r.ex}</div>
   </div>`;
+
+  // interactive converter
+  h+=`<div class="card" style="padding:14px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;margin-bottom:10px">${svg('wallet')} Converter
+      <span class="muted" style="font-weight:400;font-size:12px;margin-left:auto">type either side</span></div>
+    <div class="conv">
+      <div class="field"><label>${cur.code}</label><input id="conv-local" type="number" inputmode="decimal" placeholder="0"></div>
+      <span class="conv-eq">⇄</span>
+      <div class="field"><label>CAD</label><input id="conv-cad" type="number" inputmode="decimal" placeholder="0"></div>
+    </div></div>`;
 
   // budgets
   h+=`<div class="card" style="padding:6px 14px;margin-bottom:16px">
@@ -973,9 +1058,42 @@ function itemModal(id,defaultDay){
     +field('Address / area',`<input id="f-addr" value="${it.address?esc(it.address):''}" placeholder="for the Google Maps button">`)
     +`<div class="field row2">${field('Cost ('+t.currency.code+')',`<input id="f-cost" type="number" inputmode="decimal" value="${it.cost||''}">`)}${field('Confirmation #',`<input id="f-conf" value="${it.confirmation?esc(it.confirmation):''}">`)}</div>`
     +field('Who',selWho(t,it.who))
-    +field('Notes',`<textarea id="f-notes" placeholder="tips, links, reminders">${it.notes?esc(it.notes):''}</textarea>`),
+    +field('Notes',`<textarea id="f-notes" placeholder="tips, links, reminders">${it.notes?esc(it.notes):''}</textarea>`)
+    +(id?commentsSection(it):''),
     `${id?`<button class="btn ghost" data-delitem="${id}">${svg('trash')}</button>`:''}<button class="btn" data-saveitem="${id||''}">${id?'Save':'Add'}</button>`);
   attachCatWho();
+}
+function commentsSection(it){
+  return `<div class="field"><label>Comments${(it.comments&&it.comments.length)?' ('+it.comments.length+')':''}</label>
+    <div class="cmtlist" id="cmtlist">${renderComments(it)}</div>
+    <div class="cmtform">
+      ${myName()?'':`<input id="cmt-name" placeholder="Your name" style="flex:0 0 108px;min-width:0">`}
+      <textarea id="cmt-input" placeholder="Add a note for your group…"></textarea>
+      <button class="btn sm" data-postcmt="${it.id}">Post</button>
+    </div></div>`;
+}
+function renderComments(it){
+  const cs=it.comments||[];
+  if(!cs.length) return `<div class="muted" style="font-size:13px">No comments yet — leave a note for your travel group.</div>`;
+  return cs.map(c=>`<div class="cmt"><div class="h"><b>${esc(c.who||'Someone')}</b><span class="t">${fmtCmtTime(c.ts)}</span>
+    <span class="x" data-delcmt="${it.id}:${c.id}" title="Delete">${svg('close')}</span></div>
+    <div class="txt">${esc(c.text)}</div></div>`).join('');
+}
+function fmtCmtTime(ts){ if(!ts)return''; const d=new Date(ts);
+  return d.toLocaleDateString(undefined,{month:'short',day:'numeric'})+' '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+function postComment(id){
+  const t=trip(); const it=t.items.find(x=>x.id===id); if(!it)return;
+  const inp=document.getElementById('cmt-input'); const text=inp?inp.value.trim():''; if(!text)return;
+  const nameEl=document.getElementById('cmt-name');
+  let me=myName();
+  if(nameEl){ me=nameEl.value.trim(); if(!me){nameEl.focus();return;} setMyName(me); }
+  it.comments=it.comments||[]; it.comments.push({id:uid(),who:me,text,ts:Date.now()});
+  save();
+  const list=document.getElementById('cmtlist'); if(list)list.innerHTML=renderComments(it);
+  const form=mroot().querySelector('.cmtform'); if(form&&nameEl){ nameEl.replaceWith(); } // name captured; drop the field
+  if(inp){inp.value='';inp.focus();}
+  const cl=[...mroot().querySelectorAll('.field label')].find(l=>/^Comments/.test(l.textContent));
+  if(cl) cl.textContent='Comments ('+it.comments.length+')';
 }
 function daySelect(t,cur){
   const dl=daysList(t);
@@ -1058,12 +1176,14 @@ function hotelModal(id,defaultDay){
     `${id?`<button class="btn ghost" data-delhotel="${id}">${svg('trash')}</button>`:''}<button class="btn" data-savehotel="${id||''}">Save</button>`);
 }
 function transportModal(id){
-  const t=trip();const x=id?t.transports.find(y=>y.id===id):{mode:'Flight',from:'',to:'',date:t.start||'',time:'',confirmation:''};
+  const t=trip();const x=id?t.transports.find(y=>y.id===id):{mode:'Flight',from:'',to:'',date:t.start||'',time:'',arrive:'',flightNo:'',confirmation:'',notes:''};
   sheet(id?'Edit transport':'Add transport',
-    `<div class="field row2">${field('From',`<input id="x-from" value="${esc(x.from)}" placeholder="YYZ">`)}${field('To',`<input id="x-to" value="${esc(x.to)}" placeholder="HKG">`)}</div>`
-    +field('Mode',`<input id="x-mode" value="${esc(x.mode)}" placeholder="Flight / Train / Ferry">`)
-    +`<div class="field row2">${field('Date',`<input id="x-date" type="date" value="${x.date||''}">`)}${field('Time',`<input id="x-time" type="time" value="${x.time||''}">`)}</div>`
-    +field('Confirmation #',`<input id="x-conf" value="${esc(x.confirmation||'')}">`),
+    field('Mode',`<input id="x-mode" value="${esc(x.mode)}" placeholder="Flight / Train / Ferry">`)
+    +`<div class="field row2">${field('From',`<input id="x-from" value="${esc(x.from)}" placeholder="YYZ">`)}${field('To',`<input id="x-to" value="${esc(x.to)}" placeholder="HKG">`)}</div>`
+    +`<div class="field row2">${field('Date',`<input id="x-date" type="date" value="${x.date||''}">`)}${field('Depart time',`<input id="x-time" type="time" value="${x.time||''}">`)}</div>`
+    +`<div class="field row2">${field('Flight #',`<input id="x-flight" value="${esc(x.flightNo||'')}" placeholder="AC015">`)}${field('Arrive time',`<input id="x-arrive" type="time" value="${x.arrive||''}">`)}</div>`
+    +field('Confirmation #',`<input id="x-conf" value="${esc(x.confirmation||'')}">`)
+    +field('Details',`<textarea id="x-notes" placeholder="Terminal, gate, seat, baggage, etc.">${esc(x.notes||'')}</textarea>`),
     `${id?`<button class="btn ghost" data-deltransport="${id}">${svg('trash')}</button>`:''}<button class="btn" data-savetransport="${id||''}">Save</button>`);
 }
 function personModal(){
@@ -1100,6 +1220,12 @@ function budgetModal(){
 }
 
 /* ================= EVENTS ================= */
+// Only treat a scrim click as "close" when the press ALSO started on the scrim —
+// so dragging text/selection from inside the sheet and releasing outside won't close it.
+let scrimDown=false;
+document.addEventListener('pointerdown',e=>{
+  scrimDown = !!(e.target.classList && e.target.classList.contains('scrim') && e.target.hasAttribute('data-scrim'));
+},true);
 document.addEventListener('click',e=>{
   const T=e.target;
   const find=a=>T.closest(`[${a}]`);
@@ -1121,6 +1247,10 @@ document.addEventListener('click',e=>{
   if((el=find('data-edititem'))){itemModal(el.dataset.edititem);return;}
   if((el=find('data-saveitem'))){saveItem(el.dataset.saveitem||null);return;}
   if((el=find('data-delitem'))){const id=el.dataset.delitem;const t=trip();t.items=t.items.filter(x=>x.id!==id);save();closeModal();render();return;}
+  // comments
+  if((el=find('data-postcmt'))){postComment(el.dataset.postcmt);return;}
+  if((el=find('data-delcmt'))){const [iid,cid]=el.dataset.delcmt.split(':');const t=trip();const it=t.items.find(x=>x.id===iid);
+    if(it&&it.comments){it.comments=it.comments.filter(c=>c.id!==cid);save();const list=document.getElementById('cmtlist');if(list)list.innerHTML=renderComments(it);}return;}
   if((el=find('data-gmap'))){const it=trip().items.find(x=>x.id===el.dataset.gmap);const q=encodeURIComponent((it.address||it.title)+' '+(trip().dest||''));window.open(`https://www.google.com/maps/search/?api=1&query=${q}`,'_blank','noopener');return;}
   // legs
   if((el=find('data-editleg'))){legModal(el.dataset.editleg);return;}
@@ -1152,11 +1282,17 @@ document.addEventListener('click',e=>{
   // print
   if((el=find('data-printday'))){printDay(el.dataset.printday);return;}
   // modal close
-  if(T.closest('[data-close]')||(T.classList&&T.classList.contains('scrim')&&T.hasAttribute('data-scrim'))){closeModal();return;}
+  if(T.closest('[data-close]')||(scrimDown&&T.classList&&T.classList.contains('scrim')&&T.hasAttribute('data-scrim'))){scrimDown=false;closeModal();return;}
 });
 document.addEventListener('change',e=>{
   const el=e.target;
   if(el.matches('[data-pack]')){const p=trip().packing.find(x=>x.id===el.dataset.pack);if(p){p.done=el.checked;save();render();}}
+});
+// live currency converter (two-way, no re-render)
+document.addEventListener('input',e=>{
+  const el=e.target; const t=trip(); const cur=t&&t.currency; if(!cur)return;
+  if(el.id==='conv-local'){const v=parseFloat(el.value);const o=document.getElementById('conv-cad');if(o)o.value=isNaN(v)?'':(v/(cur.perCad||1)).toFixed(2);}
+  else if(el.id==='conv-cad'){const v=parseFloat(el.value);const o=document.getElementById('conv-local');if(o)o.value=isNaN(v)?'':(v*(cur.perCad||1)).toFixed(2);}
 });
 function act(a){
   switch(a){
@@ -1181,7 +1317,8 @@ function saveHotel(id){const t=trip();const g=x=>document.getElementById(x).valu
   const d={name,checkIn:g('h-in'),checkOut:g('h-out'),confirmation:g('h-conf').trim(),notes:g('h-notes').trim()};
   if(id)Object.assign(t.hotels.find(x=>x.id===id),d);else t.hotels.push({id:uid(),...d});save();closeModal();render();}
 function saveTransport(id){const t=trip();const g=x=>document.getElementById(x).value;
-  const d={mode:g('x-mode').trim(),from:g('x-from').trim(),to:g('x-to').trim(),date:g('x-date'),time:g('x-time'),confirmation:g('x-conf').trim()};
+  const d={mode:g('x-mode').trim(),from:g('x-from').trim(),to:g('x-to').trim(),date:g('x-date'),time:g('x-time'),
+    arrive:g('x-arrive'),flightNo:g('x-flight').trim(),confirmation:g('x-conf').trim(),notes:g('x-notes').trim()};
   if(id)Object.assign(t.transports.find(x=>x.id===id),d);else t.transports.push({id:uid(),...d});save();closeModal();render();}
 function savePerson(){const t=trip();const n=document.getElementById('p-name').value.trim();if(!n)return;
   t.party.push({id:uid(),name:n,color:PARTY_COLORS[t.party.length%PARTY_COLORS.length]});save();closeModal();render();}
