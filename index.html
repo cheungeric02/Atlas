@@ -1005,9 +1005,16 @@ async function onPick(e){
 }
 // --- rendering into placeholders left by the views ---
 function paintMedia(){
+  const t=trip();
+  // Photo memories are for reliving the trip — keep the per-day strips hidden until
+  // the trip has actually started (they'd just be empty clutter beforehand). A day
+  // that already has photos always stays visible so nothing is ever hidden away.
+  const started = !!(t && t.start && todayISO() >= t.start);
   document.querySelectorAll('[data-memday]').forEach(el=>{
     const day=el.dataset.memday;
     const ph=_media.filter(m=>m.kind==='photo'&&m.day===day);
+    if(!started && !ph.length){ el.style.display='none'; el.innerHTML=''; return; }
+    el.style.display='';
     el.innerHTML = ph.map(m=>mediaThumb(m)).join('')
       + `<button class="addmedia" data-addphoto="${day}" title="Add photos">${svg('camera')}</button>`;
   });
