@@ -1,6 +1,6 @@
 /* Atlas service worker — offline app shell + runtime font cache.
    Firebase realtime traffic is never intercepted, so live sync is unaffected. */
-const CACHE = 'atlas-v2';
+const CACHE = 'atlas-v3';
 const SHELL = [
   './',
   './index.html',
@@ -36,8 +36,11 @@ self.addEventListener('fetch', e => {
 
   // Navigations & the main document: network-first (fresh on deploy), fall back to cached shell offline.
   if (req.mode === 'navigate' || (url.origin === location.origin && url.pathname.endsWith('index.html'))) {
+    // cache:'reload' bypasses the browser HTTP disk cache (GitHub Pages sets
+    // max-age=600 on index.html), so an online refresh always gets the newest
+    // deploy instead of a stale document that lingers for up to 10 minutes.
     e.respondWith(
-      fetch(req)
+      fetch(req.url, { cache: 'reload', credentials: 'same-origin' })
         .then(res => {
           // Only cache a genuinely good full document — never a 404/500 or an
           // opaque error page (e.g. GitHub Pages mid-deploy), which would
