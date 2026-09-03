@@ -87,6 +87,11 @@ input,select,textarea{font:inherit;color:inherit}
 .iconbtn:hover{background:var(--sc)}
 .iconbtn:active{transform:scale(.94)}
 .iconbtn svg{width:22px;height:22px}
+.homebtn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px 8px 12px;border-radius:999px;background:var(--sc);color:var(--ink-2);font-weight:600;font-size:13.5px;border:1px solid var(--line);transition:.15s;flex:none}
+.homebtn:hover{background:var(--primary-c);color:var(--on-primary-c);border-color:transparent}
+.homebtn:active{transform:scale(.96)}
+.homebtn svg{width:18px;height:18px}
+@media(max-width:390px){ .homebtn span{display:none} .homebtn{padding:8px 11px} }
 
 .view{flex:1;padding:16px 16px 108px}
 @media(min-width:760px){ .view{padding:22px 22px 40px} }
@@ -156,11 +161,17 @@ input,select,textarea{font:inherit;color:inherit}
 .tripcard .acts{display:flex;gap:6px;padding:0 12px 12px;margin-top:auto}
 
 /* ---------- Itinerary ---------- */
-.legbar{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 12px;scrollbar-width:thin}
-.legchip{flex:none;padding:8px 14px;border-radius:14px;background:var(--sc);border:1px solid var(--line);min-width:118px}
+.legbar{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 12px;scrollbar-width:thin;
+  position:sticky;top:60px;z-index:20;background:var(--bg)}
+.legchip{flex:none;padding:8px 14px;border-radius:14px;background:var(--sc);border:1px solid var(--line);min-width:118px;position:relative;text-align:left;transition:.14s}
+button.legchip{cursor:pointer}
+.legchip.jumpable:hover{background:var(--sc-low);border-color:var(--primary);transform:translateY(-1px)}
 .legchip .p{font-weight:600;font-size:14px;display:flex;align-items:center;gap:6px}
 .legchip .d{font-size:11px;color:var(--ink-3)}
-.day{margin-bottom:16px;scroll-margin-top:80px}
+.legchip .legedit{position:absolute;top:4px;right:4px;width:22px;height:22px;display:grid;place-items:center;border-radius:7px;color:var(--ink-3);opacity:.55}
+.legchip .legedit:hover{opacity:1;background:color-mix(in srgb,var(--ink) 10%,transparent)}
+.legchip .legedit svg{width:13px;height:13px}
+.day{margin-bottom:16px;scroll-margin-top:128px}
 .day.today .dayhead{background:var(--primary-c);color:var(--on-primary-c)}
 .day.today .dayhead .ddate{color:inherit;opacity:.8}
 .dayhead{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--sc-low);border:1px solid var(--line);border-left:4px solid var(--dc,var(--primary));border-radius:var(--r-m) var(--r-m) 0 0}
@@ -173,6 +184,16 @@ input,select,textarea{font:inherit;color:inherit}
 .dayhead .dname{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:44vw}
 .dayhead .ddate{font-size:11.5px;color:var(--ink-3)}
 .dayhead .dright{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.daycollapse{flex:none;display:inline-flex;align-items:center;gap:6px;padding:4px 8px;border-radius:9px;color:var(--ink-3);cursor:pointer}
+.daycollapse:hover{background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--ink-2)}
+.daycollapse svg{width:20px;height:20px;transition:transform .18s}
+.day.collapsed .daycollapse svg{transform:rotate(-90deg)}
+.daycollapse .dcount{display:none;font-size:12px;font-weight:600}
+.day.collapsed .daycollapse .dcount{display:inline}
+.day.collapsed .daylist,.day.collapsed .memstrip{display:none}
+.day.collapsed .dayhead{border-radius:var(--r-m)}
+.plantools{display:flex;justify-content:flex-end;padding:0 2px 10px}
+.plantools .btn{color:var(--ink-2)}
 .based{font-size:11px;font-weight:600;display:inline-flex;gap:5px;align-items:center;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--cat-hotel) 16%,transparent);color:var(--cat-hotel);border:1px solid transparent;cursor:pointer;max-width:180px}
 .based:hover{border-color:color-mix(in srgb,var(--cat-hotel) 40%,transparent)}
 .based.nohotel{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
@@ -452,6 +473,8 @@ input,select,textarea{font:inherit;color:inherit}
 /* ================= ICONS ================= */
 const I = {
   bag:'<path d="M6 7V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v1h2a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a1 1 0 0 1 1-1zm2 0h8V6a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1z"/>',
+  chev:'<path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>',
+  grid:'<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z"/>',
   map:'<path d="M15 4 9 6 4 4.2A1 1 0 0 0 3 5v13a1 1 0 0 0 .7 1L9 21l6-2 5.3 1.8A1 1 0 0 0 21 20V7a1 1 0 0 0-.7-1zM9 6.2l6-2v13.6l-6 2z"/>',
   wallet:'<path d="M4 6a2 2 0 0 1 2-2h11a1 1 0 0 1 0 2H6v12h13v-3h-4a2 2 0 0 1 0-4h4V9a2 2 0 0 0-2-2 1 1 0 0 1 0-2 4 4 0 0 1 4 4v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm11 7a1 1 0 1 0 2 0 1 1 0 0 0-2 0z"/>',
   pack:'<path d="M9 4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 5 5 0 0 1 4 5v9a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V9a5 5 0 0 1 4-5zm2 0h2V4h-2zm-2 8v6h2v-6zm4 0v6h2v-6z"/>',
@@ -569,8 +592,19 @@ function normTrip(t){
   return t;
 }
 function normState(){ if(!S.trips||typeof S.trips!=='object') S.trips={}; if(!Array.isArray(S.order)) S.order=[]; for(const id in S.trips) normTrip(S.trips[id]); }
-function load(){ try{const r=localStorage.getItem(KEY); if(r) S=JSON.parse(r);}catch(e){} if(!S.ui)S.ui={view:'trips',prepTab:'packing'}; normState(); }
+function load(){ try{const r=localStorage.getItem(KEY); if(r) S=JSON.parse(r);}catch(e){} if(!S.ui)S.ui={view:'trips',prepTab:'packing'}; if(!S.ui.collapsed||typeof S.ui.collapsed!=='object')S.ui.collapsed={}; normState(); }
 function save(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} pushRemote(); }
+// Collapse state is a per-device VIEW preference — keep it in S.ui (never synced to
+// other viewers, since pushRemote only sends {v,trips,order}); persist locally only.
+function saveLocal(){ try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} }
+function collapsedMap(t){ if(!S.ui.collapsed)S.ui.collapsed={}; if(!S.ui.collapsed[t.id])S.ui.collapsed[t.id]={}; return S.ui.collapsed[t.id]; }
+function toggleCollapseDay(day){ const t=trip(); if(!t)return; const c=collapsedMap(t); if(c[day])delete c[day]; else c[day]=true; saveLocal();
+  const el=document.querySelector(`.day[data-dayblock="${day}"]`);
+  if(el){ el.classList.toggle('collapsed',!!c[day]); const b=el.querySelector('.daycollapse'); if(b){b.title=c[day]?'Expand day':'Collapse day';b.setAttribute('aria-label',b.title);} }
+  updateCollapseAllLabel(t); }
+function toggleCollapseAll(){ const t=trip(); if(!t)return; const dl=daysList(t); const c=collapsedMap(t); const allCol=dl.length&&dl.every(d=>c[d]);
+  if(allCol) dl.forEach(d=>delete c[d]); else dl.forEach(d=>{c[d]=true;}); saveLocal(); render(); }
+function updateCollapseAllLabel(t){ const b=document.querySelector('[data-collapseall]'); if(!b)return; const dl=daysList(t); const c=collapsedMap(t); const allCol=dl.length&&dl.every(d=>c[d]); b.innerHTML=svg('chev')+' '+(allCol?'Expand all days':'Collapse all days'); }
 
 /* ===== Live sync — open, whole-trip collaboration over shared bon-echo Firebase =====
    Anyone with the GitHub Pages link sees & edits the same trips in real time.
@@ -670,7 +704,7 @@ function render(){
   const t=trip();
   let html=`<div class="topbar">`;
   if(t && S.ui.view!=='trips'){
-    html+=`<button class="iconbtn" data-act="home" title="All trips">${svg('bag')}</button>
+    html+=`<button class="homebtn" data-act="home" title="Back to all trips">${svg('grid')}<span>Trips</span></button>
       <div><div class="trip-name">${esc(t.name)}</div><div class="trip-sub">${t.start?fmtD(t.start,{month:'short',day:'numeric'})+' – '+fmtD(t.end,{month:'short',day:'numeric'}):'No dates set'}</div></div>`;
   } else {
     html+=`<div class="brand"><span class="glyph">${svg('map')}</span>Atlas</div>`;
@@ -757,8 +791,13 @@ function viewPlan(t){
   let h=`<div class="planwrap"><div class="planmain">`;
   // legs bar
   h+=`<div class="legbar">`;
-  t.legs.forEach((l,k)=>{ h+=`<div class="legchip" data-editleg="${l.id}" style="border-left:3px solid ${legColor(k)}"><div class="p">${svg('pin')} ${esc(l.place)}</div>
-     <div class="d">${l.start?fmtD(l.start,{month:'short',day:'numeric'})+' – '+fmtD(l.end,{month:'short',day:'numeric'}):'no dates'}</div></div>`; });
+  const daySet=new Set(dl);
+  t.legs.forEach((l,k)=>{
+    const jd = (l.start&&daySet.has(l.start)) ? l.start : (dl.find(d=>legIndex(t,d)===k) || l.start || '');
+    h+=`<div class="legchip${jd?' jumpable':''}"${jd?` data-jump="${jd}" role="button" tabindex="0" title="Jump to ${esc(l.place)}"`:''} style="border-left:3px solid ${legColor(k)}">
+      <div class="p">${svg('pin')} ${esc(l.place)}</div>
+      <div class="d">${l.start?fmtD(l.start,{month:'short',day:'numeric'})+' – '+fmtD(l.end,{month:'short',day:'numeric'}):'no dates'}</div>
+      <button class="legedit" data-editleg="${l.id}" title="Edit destination" aria-label="Edit destination">${svg('edit')}</button></div>`; });
   h+=`<button class="legchip" data-act="add-leg" style="display:grid;place-items:center;min-width:52px;color:var(--ink-3)">${svg('plus')}</button></div>`;
 
   if(!dl.length){
@@ -770,26 +809,31 @@ function viewPlan(t){
   }
   // mobile/tablet day jump strip
   h+=planStrip(t,dl);
+  // collapse-all toolbar
+  const cmap=collapsedMap(t);
+  const allCol=dl.every(d=>cmap[d]);
+  h+=`<div class="plantools"><button class="btn sm ghost" data-collapseall>${svg('chev')} ${allCol?'Expand all days':'Collapse all days'}</button></div>`;
   // days
   const today=todayISO();
   h+=`<div class="days" id="dayswrap">`;
   for(let di=0;di<dl.length;di++){
     const day=dl[di]; const isToday=day===today; const dc=locColor(t,day,di);
     const hot=basedHotel(t,day); const leg=legFor(t,day); const isNight=di<dl.length-1;
-    const nm=dayNameOf(t,day);
+    const nm=dayNameOf(t,day); const col=!!cmap[day]; const nItems=itemsFor(t,day).length;
     let right=`<span class="wxchip" id="wx-${day}" data-wxday="${day}" hidden></span>`;
     if(isToday) right+=`<span class="todaytag">● Today</span>`;
     if(hot) right+=`<button class="based" data-edithotel="${hot.id}" title="View / edit reservation">${svg('bed')} ${esc(hot.name)}</button>`;
     else if(isNight) right+=`<button class="based nohotel" data-addhotel="${day}" title="No hotel booked for this night">${svg('bed')} No hotel</button>`;
     else if(leg) right+=`<span class="based leg">${svg('pin')} ${esc(leg.place)}</span>`;
-    h+=`<div class="day${isToday?' today':''}" data-dayblock="${day}" style="--dc:${dc}">
+    h+=`<div class="day${isToday?' today':''}${col?' collapsed':''}" data-dayblock="${day}" style="--dc:${dc}">
       <div class="dayhead">
         <button class="daygrip" data-daygrip title="Drag to move this whole day" aria-label="Move day">${svg('drag')}</button>
         <span class="dnum">Day ${di+1}</span>
         <button class="dtitle" data-nameday="${day}" title="Rename this day">
           <span class="dname">${nm?esc(nm):fmtD(day,{weekday:'long'})}</span>
-          <span class="ddate">${fmtD(day,{month:'short',day:'numeric'})}</span></button>
+          <span class="ddate">${nm?fmtD(day,{weekday:'short',month:'short',day:'numeric'}):fmtD(day,{month:'short',day:'numeric'})}</span></button>
         <div class="dright">${right}</div>
+        <button class="daycollapse" data-collapseday="${day}" title="${col?'Expand day':'Collapse day'}" aria-label="${col?'Expand day':'Collapse day'}"><span class="dcount">${nItems} item${nItems===1?'':'s'}</span>${svg('chev')}</button>
       </div>
       <div class="daylist droplist" data-day="${day}">`;
     const its=itemsFor(t,day);
@@ -1910,7 +1954,8 @@ function aiPreview(id){
   const p=parseAItext(ta.value); _aiParsed=p; _aiTargetId=id||null;
   const dayCount=p?Object.keys(p.days).length:0, actCount=p?Object.values(p.days).reduce((n,a)=>n+a.length,0):0;
   if(!p||(!p.legs.length&&!dayCount&&!p.name)){ box.innerHTML=`<div class="aierr">Couldn't read a trip from that text. Make sure you pasted the AI's reply using the TRIP / DATES / DESTINATION / DAY lines shown above.</div>`; return; }
-  let s=`<div class="aiok"><b>Found:</b> ${p.name?esc(p.name)+' · ':''}${p.legs.length} destination${p.legs.length===1?'':'s'} · ${dayCount} day${dayCount===1?'':'s'} · ${actCount} activit${actCount===1?'y':'ies'}${p.start?'<br><span class="mut">'+fmtD(p.start)+' → '+fmtD(p.end)+'</span>':''}</div>`;
+  const tgt=id?S.trips[id]:null; const willPack=!id||(tgt&&(!tgt.packing||!tgt.packing.length));
+  let s=`<div class="aiok"><b>Found:</b> ${p.name?esc(p.name)+' · ':''}${p.legs.length} destination${p.legs.length===1?'':'s'} · ${dayCount} day${dayCount===1?'':'s'} · ${actCount} activit${actCount===1?'y':'ies'}${p.start?'<br><span class="mut">'+fmtD(p.start)+' → '+fmtD(p.end)+'</span>':''}${willPack?'<br><span class="mut">'+svg('pack')+' a starter packing list will be added</span>':''}</div>`;
   if(id){ s+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn" data-aiimport="add">${svg('plus')} Add to this trip</button>
       <button class="btn ghost" data-aiimport="replace">Replace itinerary</button></div>
@@ -1918,6 +1963,36 @@ function aiPreview(id){
   } else s+=`<div style="margin-top:12px"><button class="btn block" data-aiimport="new">${svg('check')} Create this trip</button></div>`;
   box.innerHTML=s;
 }
+// Build a starter ("mock") packing list from trip length, the activity mix, the
+// travel month (season) and destination hints. Suggestions only — user edits freely.
+function suggestPacking(t){
+  const days=daysList(t).length||1;
+  const cats=new Set((t.items||[]).map(i=>i.category));
+  const places=(t.legs||[]).map(l=>(l.place||'').toLowerCase()).join(' ');
+  const m=t.start?parseInt(t.start.slice(5,7),10):0; // 1-12
+  const winter=[12,1,2].includes(m), summer=[6,7,8].includes(m);
+  const list=[]; const add=s=>{ if(s&&!list.some(x=>x.toLowerCase()===s.toLowerCase()))list.push(s); };
+  ['Passport / ID','Phone + charger','Wallet, cards & some cash','Travel power adapter','Toiletries kit','Any medications','Reusable water bottle'].forEach(add);
+  add(`Underwear ×${Math.min(days+1,14)}`);
+  add(`Socks ×${Math.min(days+1,14)}`);
+  add(`${Math.min(days,10)} day${days===1?'':'s'} of outfits`);
+  add('Sleepwear');
+  if(days>=6) add('Laundry bag / detergent sheets');
+  if(winter){ ['Warm coat','Thermal layers','Gloves & beanie','Scarf'].forEach(add); }
+  else if(summer){ ['Sunglasses','Sunscreen','Hat / cap','Lightweight breathable clothes'].forEach(add); }
+  else { ['Light jacket','Layers for changing weather','Compact umbrella'].forEach(add); }
+  if(cats.has('nature')){ ['Comfortable hiking shoes','Daypack','Insect repellent'].forEach(add); if(!summer)add('Rain jacket'); }
+  if(cats.has('sight')) add('Comfortable walking shoes');
+  if(cats.has('night')) add('One nicer outfit for going out');
+  if(cats.has('shop')) add('Foldable bag for purchases');
+  if(cats.has('activity')) add('Activewear for activities');
+  if(cats.has('transport')){ ['Neck pillow','Headphones','Snacks for the journey'].forEach(add); }
+  if(/onsen|hot spring|beach|hawaii|bali|thailand|okinawa|resort/.test(places)) add('Swimwear');
+  if(/japan/.test(places)) add('Small coin purse (lots of coins)');
+  add('Space for photos / souvenirs');
+  return list;
+}
+function addSuggestedPacking(t){ if(!Array.isArray(t.packing))t.packing=[]; if(t.packing.length)return; suggestPacking(t).forEach(txt=>t.packing.push({id:uid(),text:txt,done:false})); }
 function applyParsedInto(t,p,allowMeta){
   if(allowMeta){ if(p.name)t.name=p.name; if(p.start)t.start=p.start; if(p.end)t.end=p.end; if(!t.dest&&p.legs[0])t.dest=p.legs[0].place; }
   if(!Array.isArray(t.legs))t.legs=[]; if(!Array.isArray(t.items))t.items=[];
@@ -1928,6 +2003,8 @@ function applyParsedInto(t,p,allowMeta){
   Object.keys(p.days).forEach(day=>{ p.days[day].forEach(a=>{
     t.items.push({id:uid(),title:a.title,category:a.category||'sight',start:a.start||'',end:a.end||'',
       address:a.address||'',notes:a.notes||'',day:valid.has(day)?day:null,who:[],order:++maxOrder}); }); });
+  // starter packing list (only if the trip has none yet — never overwrites the user's)
+  addSuggestedPacking(t);
 }
 function aiImport(mode){
   const p=_aiParsed; if(!p){closeModal();return;}
@@ -2038,6 +2115,12 @@ document.addEventListener('click',e=>{
   if((el=find('data-open'))){S.active=el.dataset.open;S.ui.view='plan';S.ui._jumped=false;save();render();return;}
   if(find('data-act')){ const a=find('data-act').dataset.act; act(a); return; }
   if((el=find('data-prep'))){S.ui.prepTab=el.dataset.prep;save();render();return;}
+  // leg edit must be checked BEFORE data-jump: the edit button sits inside a
+  // jumpable leg chip, so the chip's jump handler would otherwise swallow it.
+  if((el=find('data-editleg'))){legModal(el.dataset.editleg);return;}
+  // day collapse
+  if((el=find('data-collapseday'))){toggleCollapseDay(el.dataset.collapseday);return;}
+  if(find('data-collapseall')){toggleCollapseAll();return;}
   // day jump + rename
   if((el=find('data-jump'))){const k=el.dataset.jump;const node=document.querySelector(k==='wish'?'.wishlist':`[data-dayblock="${k}"]`);if(node)node.scrollIntoView({block:'start',behavior:'smooth'});return;}
   if((el=find('data-nameday'))){dayNameModal(el.dataset.nameday);return;}
