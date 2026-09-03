@@ -1824,15 +1824,18 @@ function saveTrip(id){
 
 /* ================= AI UPLOAD (plain-text import) ================= */
 let _aiParsed=null,_aiTargetId=null;
-const AI_PROMPT=`I'm planning a trip and I'll paste your reply into my travel app, so reply ONLY in the exact plain-text format at the bottom - no markdown, no headings, no commentary, only the lines shown.
+const AI_PROMPT=`You're my travel-planning partner. Let's build a trip together through a normal back-and-forth conversation BEFORE you write any final plan.
 
-Fill in my details:
-- Destinations: [where you're going, e.g. Hong Kong and Macau]
-- Dates: [start] to [end]
-- I'm into: [food, hiking, museums, shopping, nightlife, temples, relaxing...]
-- Pace: [relaxed / balanced / packed]
+Start by asking me a few quick questions to shape the trip, a couple at a time - things like:
+- Where I want to go (and roughly how I'll move between places)
+- My dates, or how many days I have
+- What I'm into (food, hiking, museums, shopping, nightlife, temples, relaxing...)
+- My pace (relaxed / balanced / packed) and rough budget
+- Anything I can't miss
 
-Then build a day-by-day plan using EXACTLY this format. Use YYYY-MM-DD dates and 24-hour HH:MM times, keep the labels and the | separators, include a DAY block for every date, and put 3-6 activities per day:
+Then suggest ideas, sketch a rough day-by-day outline, and refine it with me until I'm happy. Keep this part conversational - ask, suggest, adjust. Don't dump the final format early.
+
+ONLY once I tell you the plan looks good, send ONE final message containing NOTHING but the plan in the exact plain-text format below - no markdown, no headings, no commentary, just these lines. I'll paste that final message straight into my travel app.
 
 TRIP: <trip name>
 DATES: <YYYY-MM-DD> to <YYYY-MM-DD>
@@ -1846,7 +1849,11 @@ DAY <YYYY-MM-DD>
 DAY <YYYY-MM-DD>
 - <HH:MM> | <activity> | <neighbourhood or address> | <short tip>
 
-Do not write anything outside this format.`;
+PACKING
+- <thing to pack, tailored to these destinations, the season and my activities>
+- <another item>
+
+Use YYYY-MM-DD dates and 24-hour HH:MM times, keep the labels and the | separators, include a DAY block for every date with 3-6 activities each, and tailor the PACKING list to this specific trip. Put nothing outside this format in that final message.`;
 const FORMAT_EXAMPLE=`TRIP: Hong Kong & Macau
 DATES: 2027-01-15 to 2027-01-18
 DESTINATION: Hong Kong Island | 2027-01-15 to 2027-01-17
@@ -1859,7 +1866,13 @@ DAY 2027-01-15
 
 DAY 2027-01-16
 - 10:00 | Big Buddha & Po Lin | Lantau Island | cable car up
-- 19:00 | Temple Street Night Market | Yau Ma Tei`;
+- 19:00 | Temple Street Night Market | Yau Ma Tei
+
+PACKING
+- Passport & Octopus card
+- Light layers for January (12-18°C)
+- Comfortable walking shoes
+- Compact umbrella`;
 
 function normTime(s){ if(!s)return''; s=String(s).trim().toLowerCase();
   let m=s.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/); if(m){ let h=+m[1]; if(m[3]==='pm'&&h<12)h+=12; if(m[3]==='am'&&h===12)h=0; if(h>23)return''; return String(h).padStart(2,'0')+':'+m[2]; }
@@ -1879,16 +1892,17 @@ function inferCat(txt){ const s=(txt||'').toLowerCase(); const has=a=>a.some(w=>
 function parseAItext(text){
   if(!text||!text.trim())return null;
   const lines=text.replace(/\r/g,'').split('\n');
-  const res={name:'',start:'',end:'',legs:[],days:{},_rel:[]};
+  const res={name:'',start:'',end:'',legs:[],days:{},packing:[],_rel:[]};
   const dateRe=/\d{4}-\d{2}-\d{2}/g;
   const findDates=s=>{const m=s.match(dateRe);return m||[];};
-  let curDay=null;
+  let curDay=null, inPack=false;
   for(const raw of lines){
     const line=raw.trim(); if(!line)continue;
     if(/^#+\s*/.test(line)&&!/DAY/i.test(line)){ /* skip markdown headings */ }
-    if(/^TRIP\s*[:\-]/i.test(line)){ res.name=line.replace(/^TRIP\s*[:\-]\s*/i,'').replace(/[*_`]/g,'').trim(); continue; }
-    if(/^DATES?\s*[:\-]/i.test(line)){ const d=findDates(line); if(d.length){res.start=d[0];res.end=d[1]||d[0];} continue; }
-    if(/^(DESTINATION|DEST|STAY|LEG)\s*[:\-]/i.test(line)){
+    if(/^PACKING\b/i.test(line)&&!/[|]/.test(line)){ inPack=true; curDay=null; continue; }
+    if(/^TRIP\s*[:\-]/i.test(line)){ inPack=false; res.name=line.replace(/^TRIP\s*[:\-]\s*/i,'').replace(/[*_`]/g,'').trim(); continue; }
+    if(/^DATES?\s*[:\-]/i.test(line)){ inPack=false; const d=findDates(line); if(d.length){res.start=d[0];res.end=d[1]||d[0];} continue; }
+    if(/^(DESTINATION|DEST|STAY|LEG)\s*[:\-]/i.test(line)){ inPack=false;
       let rest=line.replace(/^(DESTINATION|DEST|STAY|LEG)\s*[:\-]\s*/i,'');
       let place=rest,s='',e='';
       if(rest.indexOf('|')>=0){ const b=rest.split('|'); place=b[0]; const d=findDates(b.slice(1).join(' ')); if(d.length){s=d[0];e=d[1]||d[0];} }
@@ -1898,14 +1912,16 @@ function parseAItext(text){
       continue;
     }
     if(/^DAY\b/i.test(line)||/^\d{4}-\d{2}-\d{2}/.test(line)){
+      inPack=false;
       const d=findDates(line);
       if(d.length){ curDay=d[0]; if(!res.days[curDay])res.days[curDay]=[]; continue; }
       const n=line.match(/^DAY\s+(\d+)/i); if(n){ curDay={rel:+n[1]}; continue; }
       continue;
     }
     if(/^[-*•·]/.test(line)){
-      if(curDay==null)continue;
       const body=line.replace(/^[-*•·]\s*/,'').replace(/[*_`]/g,'');
+      if(inPack){ const txt=body.split('|')[0].trim(); if(txt)res.packing.push(txt); continue; }
+      if(curDay==null)continue;
       const parts=body.split('|').map(x=>x.trim());
       let start='',title='',address='',notes='';
       if(isTimeToken(parts[0])){ start=normTime(parts[0]); title=parts[1]||''; address=parts[2]||''; notes=parts.slice(3).filter(Boolean).join(' · '); }
@@ -1931,11 +1947,11 @@ function parseAItext(text){
 function aiModal(id){
   _aiTargetId=id||null; _aiParsed=null;
   sheet('Upload from AI',
-    `<div class="aihelp">Ask Claude — or any AI — to plan your trip, then paste its whole reply here to auto-fill everything.
+    `<div class="aihelp">Plan your trip with Claude — or any AI — in a normal chat, then paste its final reply here to auto-fill everything.
        <ol style="margin:8px 0 0;padding-left:18px;line-height:1.7">
          <li>Tap <b>Copy AI prompt</b> below.</li>
-         <li>Paste it into an AI, add your trip details, and send.</li>
-         <li>Copy the AI's entire reply and paste it in the box.</li>
+         <li>Paste it into an AI — it'll ask a few questions and build the plan with you.</li>
+         <li>When you're happy, copy the AI's <b>final</b> formatted reply and paste it in the box.</li>
        </ol></div>
      <button class="btn ghost sm" id="ai-copy" style="margin:10px 0">${svg('copy')} Copy AI prompt</button>
      <details style="margin:2px 0 12px"><summary style="cursor:pointer;font-size:13px;opacity:.85">See the format the AI should use</summary><pre class="aifmt">${esc(FORMAT_EXAMPLE)}</pre></details>
@@ -1955,7 +1971,9 @@ function aiPreview(id){
   const dayCount=p?Object.keys(p.days).length:0, actCount=p?Object.values(p.days).reduce((n,a)=>n+a.length,0):0;
   if(!p||(!p.legs.length&&!dayCount&&!p.name)){ box.innerHTML=`<div class="aierr">Couldn't read a trip from that text. Make sure you pasted the AI's reply using the TRIP / DATES / DESTINATION / DAY lines shown above.</div>`; return; }
   const tgt=id?S.trips[id]:null; const willPack=!id||(tgt&&(!tgt.packing||!tgt.packing.length));
-  let s=`<div class="aiok"><b>Found:</b> ${p.name?esc(p.name)+' · ':''}${p.legs.length} destination${p.legs.length===1?'':'s'} · ${dayCount} day${dayCount===1?'':'s'} · ${actCount} activit${actCount===1?'y':'ies'}${p.start?'<br><span class="mut">'+fmtD(p.start)+' → '+fmtD(p.end)+'</span>':''}${willPack?'<br><span class="mut">'+svg('pack')+' a starter packing list will be added</span>':''}</div>`;
+  const packN=p.packing?p.packing.length:0;
+  const packMsg=willPack?('<br><span class="mut">'+svg('pack')+' '+(packN?(packN+' packing item'+(packN===1?'':'s')+' from your plan'):'a starter packing list will be added')+'</span>'):'';
+  let s=`<div class="aiok"><b>Found:</b> ${p.name?esc(p.name)+' · ':''}${p.legs.length} destination${p.legs.length===1?'':'s'} · ${dayCount} day${dayCount===1?'':'s'} · ${actCount} activit${actCount===1?'y':'ies'}${p.start?'<br><span class="mut">'+fmtD(p.start)+' → '+fmtD(p.end)+'</span>':''}${packMsg}</div>`;
   if(id){ s+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn" data-aiimport="add">${svg('plus')} Add to this trip</button>
       <button class="btn ghost" data-aiimport="replace">Replace itinerary</button></div>
@@ -1993,6 +2011,9 @@ function suggestPacking(t){
   return list;
 }
 function addSuggestedPacking(t){ if(!Array.isArray(t.packing))t.packing=[]; if(t.packing.length)return; suggestPacking(t).forEach(txt=>t.packing.push({id:uid(),text:txt,done:false})); }
+// Use a packing list the AI supplied (only when the trip has none yet — never overwrites the user's).
+function addParsedPacking(t,arr){ if(!Array.isArray(t.packing))t.packing=[]; if(t.packing.length)return;
+  arr.forEach(raw=>{ const txt=String(raw).trim(); if(txt&&!t.packing.some(x=>x.text.toLowerCase()===txt.toLowerCase()))t.packing.push({id:uid(),text:txt,done:false}); }); }
 function applyParsedInto(t,p,allowMeta){
   if(allowMeta){ if(p.name)t.name=p.name; if(p.start)t.start=p.start; if(p.end)t.end=p.end; if(!t.dest&&p.legs[0])t.dest=p.legs[0].place; }
   if(!Array.isArray(t.legs))t.legs=[]; if(!Array.isArray(t.items))t.items=[];
@@ -2003,8 +2024,10 @@ function applyParsedInto(t,p,allowMeta){
   Object.keys(p.days).forEach(day=>{ p.days[day].forEach(a=>{
     t.items.push({id:uid(),title:a.title,category:a.category||'sight',start:a.start||'',end:a.end||'',
       address:a.address||'',notes:a.notes||'',day:valid.has(day)?day:null,who:[],order:++maxOrder}); }); });
-  // starter packing list (only if the trip has none yet — never overwrites the user's)
-  addSuggestedPacking(t);
+  // packing list (only if the trip has none yet — never overwrites the user's):
+  // prefer the list the AI produced, otherwise fall back to the in-app starter generator.
+  if(p.packing&&p.packing.length) addParsedPacking(t,p.packing);
+  else addSuggestedPacking(t);
 }
 function aiImport(mode){
   const p=_aiParsed; if(!p){closeModal();return;}
