@@ -301,6 +301,15 @@ input,select,textarea{font:inherit;color:inherit}
 .field textarea{resize:vertical;min-height:64px}
 .field.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .field .hint{font-size:11.5px;color:var(--ink-3)}
+.autonote{font-size:12px;color:var(--primary);font-weight:600;display:flex;align-items:center;gap:5px;min-height:0;margin:-2px 2px 0}
+.autonote:empty{display:none}
+.autonote svg{width:14px;height:14px;flex:0 0 auto}
+.autonote .mut{color:var(--ink-3);font-weight:500}
+.aihelp{font-size:13.5px;color:var(--ink-2);line-height:1.55}
+.aifmt{background:var(--sc-low);border:1px solid var(--outline);border-radius:12px;padding:12px;font-size:11.5px;line-height:1.5;white-space:pre-wrap;overflow-x:auto;font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;color:var(--ink-2);margin:8px 0 0}
+.aiok{background:color-mix(in srgb,var(--primary) 12%,transparent);border:1px solid color-mix(in srgb,var(--primary) 35%,transparent);border-radius:12px;padding:11px 13px;font-size:13.5px;line-height:1.5}
+.aiok .mut{color:var(--ink-3);font-size:12px}
+.aierr{background:color-mix(in srgb,var(--danger) 12%,transparent);border:1px solid color-mix(in srgb,var(--danger) 35%,transparent);border-radius:12px;padding:11px 13px;font-size:13px;line-height:1.5;color:var(--ink)}
 .catpick,.whopick{display:flex;flex-wrap:wrap;gap:7px}
 .catopt{padding:7px 12px;border-radius:999px;font-size:13px;font-weight:500;border:1.5px solid var(--outline);display:inline-flex;gap:6px;align-items:center}
 .catopt.on{border-color:transparent;color:#fff}
@@ -471,6 +480,8 @@ const I = {
   chat:'<path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H8l-4 4V5a1 1 0 0 1 1-1zm3 5h10v2H7zm0 4h7v2H7z"/>',
   bell:'<path d="M12 2a6 6 0 0 0-6 6v3.6l-1.7 3.4A1 1 0 0 0 5.2 16h13.6a1 1 0 0 0 .9-1.4L18 11.6V8a6 6 0 0 0-6-6zm0 20a3 3 0 0 0 3-3H9a3 3 0 0 0 3 3z"/>',
   globe:'<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-2.5a15.6 15.6 0 0 0-1.2-3.3A8 8 0 0 1 18.9 8zM12 4c.8 1.1 1.4 2.5 1.8 4h-3.6c.4-1.5 1-2.9 1.8-4zM4.3 14a8 8 0 0 1 0-4h2.9a17.5 17.5 0 0 0 0 4zm.8 2h2.5c.3 1.2.7 2.3 1.2 3.3A8 8 0 0 1 5.1 16zm2.5-8H5.1a8 8 0 0 1 3.7-3.3C8.3 5.7 7.9 6.8 7.6 8zM12 20c-.8-1.1-1.4-2.5-1.8-4h3.6c-.4 1.5-1 2.9-1.8 4zm2.2-6H9.8a15.6 15.6 0 0 1 0-4h4.4a15.6 15.6 0 0 1 0 4zm.8 5.3c.5-1 .9-2.1 1.2-3.3h2.5a8 8 0 0 1-3.7 3.3zm2.8-5.3a17.5 17.5 0 0 0 0-4h2.9a8 8 0 0 1 0 4z"/>',
+  check:'<path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
+  sparkle:'<path d="M12 2.5 13.9 8 19.5 9.9 13.9 11.8 12 17.3 10.1 11.8 4.5 9.9 10.1 8zM19 14l.9 2.6L22.5 17.5l-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z"/>',
 };
 const svg=(n,cls='')=>`<svg viewBox="0 0 24 24" fill="currentColor" ${cls?`class="${cls}"`:''} aria-hidden="true">${I[n]||''}</svg>`;
 
@@ -486,7 +497,60 @@ const catName=k=>(CATS.find(c=>c[0]===k)||CATS[7])[1];
 const PARTY_COLORS=['#0d6e66','#e8590c','#7048e8','#c2255c','#2f9e44','#1971c2','#5f3dc4','#0c8599'];
 const DAY_COLORS=['#1971c2','#e8590c','#7048e8','#2f9e44','#c2255c','#0c8599','#f08c00','#5f3dc4','#0d6e66','#d6336c','#2b8a3e','#e64980'];
 const dayColor=i=>DAY_COLORS[i%DAY_COLORS.length];
+// Colour by LOCATION: every day inside the same destination leg shares one colour.
+// Falls back to per-day colours only when a trip has no destinations defined yet.
+function legIndex(t,day){ if(!t||!Array.isArray(t.legs)) return -1;
+  for(let k=0;k<t.legs.length;k++){ const l=t.legs[k]; if(l.start&&l.end&&day>=l.start&&day<=l.end) return k; } return -1; }
+function locColor(t,day,i){
+  if(t&&Array.isArray(t.legs)&&t.legs.length){ const k=legIndex(t,day); return k>=0?DAY_COLORS[k%DAY_COLORS.length]:'#8a94a6'; }
+  return DAY_COLORS[(i||0)%DAY_COLORS.length];
+}
+const legColor=k=>DAY_COLORS[k%DAY_COLORS.length];
 const dayNameOf=(t,d)=>((t.dayNames||{})[d]||'');
+
+// ---- offline place lookup: destination -> currency code + rough C$ rate + UTC offset (all editable)
+const GEO=[
+  {k:['tokyo','osaka','kyoto','nagoya','sapporo','fukuoka','okinawa','hokkaido','hakone','nara','japan'],code:'JPY',rate:110,tz:9},
+  {k:['hong kong','hongkong'],code:'HKD',rate:5.7,tz:8},
+  {k:['macau','macao'],code:'MOP',rate:5.9,tz:8},
+  {k:['beijing','shanghai','shenzhen','guangzhou','chengdu','xian','china'],code:'CNY',rate:5.3,tz:8},
+  {k:['taipei','kaohsiung','taiwan'],code:'TWD',rate:23,tz:8},
+  {k:['seoul','busan','incheon','korea'],code:'KRW',rate:1000,tz:9},
+  {k:['singapore'],code:'SGD',rate:0.98,tz:8},
+  {k:['bangkok','phuket','chiang mai','thailand'],code:'THB',rate:26,tz:7},
+  {k:['hanoi','ho chi minh','saigon','da nang','vietnam'],code:'VND',rate:18500,tz:7},
+  {k:['manila','cebu','philippines'],code:'PHP',rate:42,tz:8},
+  {k:['kuala lumpur','penang','malaysia'],code:'MYR',rate:3.4,tz:8},
+  {k:['bali','denpasar','jakarta','indonesia'],code:'IDR',rate:11500,tz:8},
+  {k:['delhi','mumbai','bangalore','bengaluru','goa','jaipur','india'],code:'INR',rate:62,tz:5.5},
+  {k:['dubai','abu dhabi','uae','united arab emirates'],code:'AED',rate:2.7,tz:4},
+  {k:['london','manchester','edinburgh','scotland','england','uk','united kingdom','britain'],code:'GBP',rate:0.58,tz:0},
+  {k:['dublin','ireland'],code:'EUR',rate:0.68,tz:0},
+  {k:['paris','nice','lyon','france'],code:'EUR',rate:0.68,tz:1},
+  {k:['rome','milan','venice','florence','italy'],code:'EUR',rate:0.68,tz:1},
+  {k:['madrid','barcelona','seville','spain'],code:'EUR',rate:0.68,tz:1},
+  {k:['berlin','munich','frankfurt','germany'],code:'EUR',rate:0.68,tz:1},
+  {k:['amsterdam','netherlands'],code:'EUR',rate:0.68,tz:1},
+  {k:['lisbon','porto','portugal'],code:'EUR',rate:0.68,tz:1},
+  {k:['zurich','geneva','switzerland'],code:'CHF',rate:0.64,tz:1},
+  {k:['sydney','melbourne','brisbane','perth','australia'],code:'AUD',rate:1.12,tz:10},
+  {k:['auckland','wellington','queenstown','new zealand'],code:'NZD',rate:1.22,tz:12},
+  {k:['cancun','tulum','mexico city','mexico'],code:'MXN',rate:13,tz:-6},
+  {k:['honolulu','maui','hawaii'],code:'USD',rate:0.73,tz:-10},
+  {k:['vancouver'],code:'CAD',rate:1,tz:-8},
+  {k:['calgary','edmonton'],code:'CAD',rate:1,tz:-7},
+  {k:['toronto','ottawa','montreal','canada'],code:'CAD',rate:1,tz:-5},
+  {k:['los angeles','san francisco','seattle','portland','las vegas','san diego'],code:'USD',rate:0.73,tz:-8},
+  {k:['denver','phoenix','salt lake'],code:'USD',rate:0.73,tz:-7},
+  {k:['chicago','houston','dallas','austin','texas'],code:'USD',rate:0.73,tz:-6},
+  {k:['new york','boston','miami','washington','atlanta','orlando','philadelphia','usa','united states'],code:'USD',rate:0.73,tz:-5},
+];
+function geoLookup(s){ if(!s) return null; const hay=' '+s.toLowerCase().replace(/[.,/]/g,' ')+' ';
+  let best=null,bl=0;
+  for(const g of GEO){ for(const key of g.k){ const re=new RegExp('\\b'+key.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b');
+    if(re.test(hay)&&key.length>bl){ best=g; bl=key.length; } } }
+  return best; }
+const tzLabel=n=>'UTC'+(n>=0?'+':'')+n;
 
 /* ================= STATE ================= */
 const KEY='roam-v1';
@@ -655,9 +719,11 @@ function viewTrips(){
       <h3>No trips yet</h3><p>Start planning your next adventure.</p>
       <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap">
         <button class="btn" data-act="new-trip">${svg('plus')} New trip</button>
+        <button class="btn ghost" data-act="ai-import">${svg('sparkle')} From AI</button>
         <button class="btn ghost" data-act="seed">Load Hong Kong sample</button></div></div>`;
   }
   let h=`<div class="section-title"><h2>Your trips</h2><div class="spacer"></div>
+     <button class="btn sm ghost" data-act="ai-import">${svg('sparkle')} From AI</button>
      <button class="btn sm" data-act="new-trip">${svg('plus')} New</button></div><div class="grid-trips">`;
   for(const id of S.order){
     const t=S.trips[id]; const dl=daysList(t);
@@ -691,8 +757,8 @@ function viewPlan(t){
   let h=`<div class="planwrap"><div class="planmain">`;
   // legs bar
   h+=`<div class="legbar">`;
-  for(const l of t.legs){ h+=`<div class="legchip" data-editleg="${l.id}"><div class="p">${svg('pin')} ${esc(l.place)}</div>
-     <div class="d">${l.start?fmtD(l.start,{month:'short',day:'numeric'})+' – '+fmtD(l.end,{month:'short',day:'numeric'}):'no dates'}</div></div>`; }
+  t.legs.forEach((l,k)=>{ h+=`<div class="legchip" data-editleg="${l.id}" style="border-left:3px solid ${legColor(k)}"><div class="p">${svg('pin')} ${esc(l.place)}</div>
+     <div class="d">${l.start?fmtD(l.start,{month:'short',day:'numeric'})+' – '+fmtD(l.end,{month:'short',day:'numeric'}):'no dates'}</div></div>`; });
   h+=`<button class="legchip" data-act="add-leg" style="display:grid;place-items:center;min-width:52px;color:var(--ink-3)">${svg('plus')}</button></div>`;
 
   if(!dl.length){
@@ -708,7 +774,7 @@ function viewPlan(t){
   const today=todayISO();
   h+=`<div class="days" id="dayswrap">`;
   for(let di=0;di<dl.length;di++){
-    const day=dl[di]; const isToday=day===today; const dc=dayColor(di);
+    const day=dl[di]; const isToday=day===today; const dc=locColor(t,day,di);
     const hot=basedHotel(t,day); const leg=legFor(t,day); const isNight=di<dl.length-1;
     const nm=dayNameOf(t,day);
     let right=`<span class="wxchip" id="wx-${day}" data-wxday="${day}" hidden></span>`;
@@ -761,7 +827,7 @@ function planSummary(t,dl){
   dl.forEach((d,i)=>{
     const nm=dayNameOf(t,d); const n=itemsFor(t,d).length;
     h+=`<button class="sum-day${d===today?' now':''}" data-jump="${d}">
-      <span class="sd-dot" style="background:${dayColor(i)}"></span>
+      <span class="sd-dot" style="background:${locColor(t,d,i)}"></span>
       <span class="sd-txt"><b>Day ${i+1}${nm?' · '+esc(nm):''}</b>
       <span class="sd-sub">${fmtD(d,{weekday:'short',month:'short',day:'numeric'})} · ${n} item${n===1?'':'s'}</span></span></button>`;
   });
@@ -774,7 +840,7 @@ function planStrip(t,dl){
   const today=todayISO();
   let h=`<div class="summary-strip">`;
   dl.forEach((d,i)=>{ const nm=dayNameOf(t,d);
-    h+=`<button class="sum-chip${d===today?' now':''}" data-jump="${d}" style="--dc:${dayColor(i)}">Day ${i+1}${nm?`<small>${esc(nm)}</small>`:''}</button>`;
+    h+=`<button class="sum-chip${d===today?' now':''}" data-jump="${d}" style="--dc:${locColor(t,d,i)}">Day ${i+1}${nm?`<small>${esc(nm)}</small>`:''}</button>`;
   });
   h+=`<button class="sum-chip" data-jump="wish" style="--dc:var(--secondary)">★ Wishlist</button></div>`;
   return h;
@@ -1123,16 +1189,22 @@ function viewMap(t){
   if(!geocodable && !(t.hotels||[]).length){
     return `<div class="section-title"><h2>Map</h2></div>
       <div class="mapempty"><div class="big">${svg('globe')}</div>
-      <h3>Nothing to map yet</h3><p>Add activities (with a name or address) and they'll appear here — pinned, numbered, and colored by day.</p></div>`;
+      <h3>Nothing to map yet</h3><p>Add activities (with a name or address) and they'll appear here — pinned, numbered, and colored by location.</p></div>`;
   }
   const filt=S.ui.mapDay||'all';
   let chips=`<button class="mapchip ${filt==='all'?'on':''}" data-mapday="all" ${filt==='all'?'style="background:var(--primary);border-color:transparent"':''}>All days</button>`;
-  dl.forEach((d,i)=>{ const c=dayColor(i),on=filt===d;
+  dl.forEach((d,i)=>{ const c=locColor(t,d,i),on=filt===d;
     chips+=`<button class="mapchip ${on?'on':''}" data-mapday="${d}" ${on?`style="background:${c};border-color:${c}"`:''}><span class="sw" style="background:${c}"></span>Day ${i+1}</button>`; });
   if(t.items.some(i=>!i.day&&(i.address||i.title))){ const on=filt==='wish';
     chips+=`<button class="mapchip ${on?'on':''}" data-mapday="wish" ${on?'style="background:#8a929c;border-color:#8a929c"':''}><span class="sw" style="background:#8a929c"></span>★ Wishlist</button>`; }
+  // legend grouped by location (matches the day colours)
   let legend='';
-  dl.forEach((d,i)=>{ const l=legFor(t,d); legend+=`<span class="lg"><span class="sw" style="background:${dayColor(i)}"></span>Day ${i+1}${l&&l.place?' · '+esc(l.place):''}</span>`; });
+  if(Array.isArray(t.legs)&&t.legs.length){
+    t.legs.forEach((l,k)=>{ legend+=`<span class="lg"><span class="sw" style="background:${legColor(k)}"></span>${esc(l.place||('Leg '+(k+1)))}</span>`; });
+    if(dl.some(d=>legIndex(t,d)<0)) legend+=`<span class="lg"><span class="sw" style="background:#8a94a6"></span>Other days</span>`;
+  } else {
+    dl.forEach((d,i)=>{ legend+=`<span class="lg"><span class="sw" style="background:${locColor(t,d,i)}"></span>Day ${i+1}</span>`; });
+  }
   return `<div class="section-title"><h2>Map</h2></div>
     <div class="mapbar">${chips}<span class="mapstatus" id="mapstatus"></span></div>
     <div id="atlas-map"></div>
@@ -1178,7 +1250,7 @@ function drawMap(t,L){
   const filt=S.ui.mapDay||'all', dl=daysList(t), pts=[];
   dl.forEach((d,i)=>{
     if(filt!=='all'&&filt!==d) return;
-    const c=dayColor(i), its=itemsFor(t,d), line=[];
+    const c=locColor(t,d,i), its=itemsFor(t,d), line=[];
     its.forEach((it,idx)=>{
       if(it.lat==null) return;
       const ll=[it.lat,it.lng]; pts.push(ll); line.push(ll);
@@ -1647,21 +1719,49 @@ function saveItem(id){
 
 // ---- trip modal
 function tripModal(id){
-  const t=id?S.trips[id]:{name:'',dest:'',start:'',end:'',destTZ:8,homeTZ:-5,currency:{code:'HKD',perCad:5.6},party:[],legs:[],hotels:[],items:[],expenses:[],budgets:{},packing:[],transports:[]};
+  const t=id?S.trips[id]:{name:'',dest:'',start:'',end:'',destTZ:'',homeTZ:'',homeCity:'',currency:{code:'',perCad:''},party:[],legs:[],hotels:[],items:[],expenses:[],budgets:{},packing:[],transports:[]};
+  const cur=t.currency||{code:'',perCad:''};
   sheet(id?'Trip settings':'New trip',
-    field('Trip name',`<input id="t-name" value="${esc(t.name)}" placeholder="Hong Kong 2026">`)
-    +field('Main destination',`<input id="t-dest" value="${esc(t.dest||'')}" placeholder="Hong Kong">`)
+    `<button class="btn ghost block" id="ai-open" style="margin-bottom:12px">${svg('sparkle')} ${id?'Import from AI (add or replace)':'Fill this in from an AI plan'}</button>`
+    +field('Trip name',`<input id="t-name" value="${esc(t.name)}" placeholder="Hong Kong 2026">`)
+    +field('Main destination',`<input id="t-dest" value="${esc(t.dest||'')}" placeholder="Hong Kong" autocomplete="off">`,'')
+    +`<div class="autonote" id="t-dest-note"></div>`
     +`<div class="field row2">${field('Start date',`<input id="t-start" type="date" value="${t.start||''}">`)}${field('End date',`<input id="t-end" type="date" value="${t.end||''}">`)}</div>`
     +(id&&t.start?`<div class="hint" style="margin:-6px 2px 2px;display:flex;gap:6px">${svg('today')}<span>Move both dates the same way and your whole plan shifts with them. Add days and they arrive empty; trim days and anything on them drops safely to the Wishlist.</span></div>`:'')
-    +`<div class="field row2">${field('Currency code',`<input id="t-cur" value="${esc(t.currency.code)}" placeholder="HKD" maxlength="4">`)}${field('C$1 = ? local',`<input id="t-rate" type="number" inputmode="decimal" value="${t.currency.perCad}">`,'e.g. HKD 5.6, JPY 108')}</div>`
-    +`<div class="field row2">${field('Destination UTC offset',`<input id="t-dtz" type="number" value="${t.destTZ??8}">`,'HK +8, Japan +9')}${field('Home UTC offset',`<input id="t-htz" type="number" value="${t.homeTZ??-5}">`,'Toronto -5/-4')}</div>`,
+    +`<div class="field row2">${field('Currency code',`<input id="t-cur" value="${esc(cur.code||'')}" placeholder="HKD" maxlength="4">`)}${field('C$1 = ? local',`<input id="t-rate" type="number" inputmode="decimal" value="${cur.perCad!==''&&cur.perCad!=null?cur.perCad:''}" placeholder="5.6">`,'e.g. HKD 5.6, JPY 110')}</div>`
+    +field('Home city',`<input id="t-home" value="${esc(t.homeCity||'')}" placeholder="Toronto" autocomplete="off">`,'Sets your home clock — pick a city and the timezone fills in.')
+    +`<div class="autonote" id="t-home-note"></div>`
+    +`<div class="field row2">${field('Destination UTC offset',`<input id="t-dtz" type="number" value="${t.destTZ!==''&&t.destTZ!=null?t.destTZ:''}" placeholder="8">`,'auto-fills from destination')}${field('Home UTC offset',`<input id="t-htz" type="number" value="${t.homeTZ!==''&&t.homeTZ!=null?t.homeTZ:''}" placeholder="-5">`,'auto-fills from home city')}</div>`,
     `${id?`<button class="btn ghost" data-scrim-keep data-newtrip-cancel style="display:none"></button>`:''}<button class="btn block" data-savetrip="${id||''}">${id?'Save':'Create trip'}</button>`);
+  attachTripForm(id);
+}
+// Auto-fill currency + timezone from the typed places, without ever clobbering values the user set.
+function attachTripForm(id){
+  const $=x=>document.getElementById(x);
+  const touched={};
+  ['t-cur','t-rate','t-dtz','t-htz'].forEach(k=>{ const el=$(k); if(el){ if(String(el.value).trim()!=='')touched[k]=true; el.addEventListener('input',()=>{touched[k]=true;}); } });
+  const dnote=$('t-dest-note'), hnote=$('t-home-note');
+  const applyDest=()=>{ const g=geoLookup($('t-dest').value);
+    if(!g){ if(dnote)dnote.textContent=''; return; }
+    if(!touched['t-cur'])$('t-cur').value=g.code;
+    if(!touched['t-rate'])$('t-rate').value=g.rate;
+    if(!touched['t-dtz'])$('t-dtz').value=g.tz;
+    if(dnote)dnote.innerHTML=`${svg('sparkle')} ${g.code} · about ${g.rate} per C$ · ${tzLabel(g.tz)} <span class="mut">— edit any field to override</span>`; };
+  const applyHome=()=>{ const g=geoLookup($('t-home').value);
+    if(!g){ if(hnote)hnote.textContent=''; return; }
+    if(!touched['t-htz'])$('t-htz').value=g.tz;
+    if(hnote)hnote.innerHTML=`${svg('sparkle')} Home clock ${tzLabel(g.tz)}`; };
+  if($('t-dest'))$('t-dest').addEventListener('input',applyDest);
+  if($('t-home'))$('t-home').addEventListener('input',applyHome);
+  const ai=$('ai-open'); if(ai)ai.onclick=()=>aiModal(id||null);
 }
 function saveTrip(id){
   const g=x=>document.getElementById(x).value;
   const name=g('t-name').trim(); if(!name){document.getElementById('t-name').focus();return;}
+  const numOrNull=v=>{v=String(v).trim();return v===''?null:Number(v);};
   const patch={name,dest:g('t-dest').trim(),start:g('t-start'),end:g('t-end'),
-    destTZ:Number(g('t-dtz')),homeTZ:Number(g('t-htz')),
+    homeCity:(document.getElementById('t-home')?document.getElementById('t-home').value.trim():''),
+    destTZ:numOrNull(g('t-dtz')),homeTZ:numOrNull(g('t-htz')),
     currency:{code:(g('t-cur').trim()||'CAD').toUpperCase(),perCad:Number(g('t-rate'))||1}};
   if(id){
     const t=S.trips[id]; if(!t){closeModal();render();return;}   // trip removed elsewhere while editing
@@ -1676,6 +1776,174 @@ function saveTrip(id){
   else{const nt={id:uid(),party:[],legs:[],hotels:[],items:[],expenses:[],budgets:{},packing:[],transports:[],...patch};
     S.trips[nt.id]=nt;S.order.push(nt.id);S.active=nt.id;S.ui.view='plan';S.ui._jumped=false;}
   save();closeModal();render();
+}
+
+/* ================= AI UPLOAD (plain-text import) ================= */
+let _aiParsed=null,_aiTargetId=null;
+const AI_PROMPT=`I'm planning a trip and I'll paste your reply into my travel app, so reply ONLY in the exact plain-text format at the bottom - no markdown, no headings, no commentary, only the lines shown.
+
+Fill in my details:
+- Destinations: [where you're going, e.g. Hong Kong and Macau]
+- Dates: [start] to [end]
+- I'm into: [food, hiking, museums, shopping, nightlife, temples, relaxing...]
+- Pace: [relaxed / balanced / packed]
+
+Then build a day-by-day plan using EXACTLY this format. Use YYYY-MM-DD dates and 24-hour HH:MM times, keep the labels and the | separators, include a DAY block for every date, and put 3-6 activities per day:
+
+TRIP: <trip name>
+DATES: <YYYY-MM-DD> to <YYYY-MM-DD>
+DESTINATION: <city or area> | <arrive YYYY-MM-DD> to <depart YYYY-MM-DD>
+DESTINATION: <next city or area> | <arrive> to <depart>
+
+DAY <YYYY-MM-DD>
+- <HH:MM> | <activity> | <neighbourhood or address> | <short tip>
+- <HH:MM> | <activity> | <neighbourhood or address> | <short tip>
+
+DAY <YYYY-MM-DD>
+- <HH:MM> | <activity> | <neighbourhood or address> | <short tip>
+
+Do not write anything outside this format.`;
+const FORMAT_EXAMPLE=`TRIP: Hong Kong & Macau
+DATES: 2027-01-15 to 2027-01-18
+DESTINATION: Hong Kong Island | 2027-01-15 to 2027-01-17
+DESTINATION: Macau | 2027-01-17 to 2027-01-18
+
+DAY 2027-01-15
+- 09:30 | Victoria Peak Tram | The Peak | go early to beat queues
+- 12:30 | Dim sum lunch | Central | try Tim Ho Wan
+- 15:00 | Star Ferry | Tsim Sha Tsui
+
+DAY 2027-01-16
+- 10:00 | Big Buddha & Po Lin | Lantau Island | cable car up
+- 19:00 | Temple Street Night Market | Yau Ma Tei`;
+
+function normTime(s){ if(!s)return''; s=String(s).trim().toLowerCase();
+  let m=s.match(/^(\d{1,2}):(\d{2})\s*(am|pm)?$/); if(m){ let h=+m[1]; if(m[3]==='pm'&&h<12)h+=12; if(m[3]==='am'&&h===12)h=0; if(h>23)return''; return String(h).padStart(2,'0')+':'+m[2]; }
+  m=s.match(/^(\d{1,2})\s*(am|pm)$/); if(m){ let h=+m[1]; if(m[2]==='pm'&&h<12)h+=12; if(m[2]==='am'&&h===12)h=0; if(h>23)return''; return String(h).padStart(2,'0')+':00'; }
+  m=s.match(/^(\d{2})(\d{2})$/); if(m&&+m[1]<24){ return m[1]+':'+m[2]; }
+  return ''; }
+function isTimeToken(s){ return normTime(s)!==''; }
+function inferCat(txt){ const s=(txt||'').toLowerCase(); const has=a=>a.some(w=>s.includes(w));
+  if(has(['breakfast','brunch','lunch','dinner','restaurant','cafe','café','coffee',' eat','dining','food','ramen','sushi','dim sum','bakery','noodle','izakaya']))return'food';
+  if(has(['nightlife','pub','drinks','cocktail','night market','rooftop bar','karaoke','nightclub','speakeasy'])||/\bbars?\b/.test(s))return'night';
+  if(has(['shopping','mall','market','store','boutique','outlet','souvenir']))return'shop';
+  if(has(['park','garden','beach','hike','hiking','trail','mountain','lake','waterfall','forest','nature','island','bay','onsen','hot spring']))return'nature';
+  if(has(['flight','airport','train','station','bus ','ferry','taxi','transfer','check-in','check in','drive','metro','subway','rental car']))return'transport';
+  if(has(['tour','cruise','class','workshop','experience','show','spa','cooking','tasting','theme park','disney','universal']))return'activity';
+  return'sight'; }
+
+function parseAItext(text){
+  if(!text||!text.trim())return null;
+  const lines=text.replace(/\r/g,'').split('\n');
+  const res={name:'',start:'',end:'',legs:[],days:{},_rel:[]};
+  const dateRe=/\d{4}-\d{2}-\d{2}/g;
+  const findDates=s=>{const m=s.match(dateRe);return m||[];};
+  let curDay=null;
+  for(const raw of lines){
+    const line=raw.trim(); if(!line)continue;
+    if(/^#+\s*/.test(line)&&!/DAY/i.test(line)){ /* skip markdown headings */ }
+    if(/^TRIP\s*[:\-]/i.test(line)){ res.name=line.replace(/^TRIP\s*[:\-]\s*/i,'').replace(/[*_`]/g,'').trim(); continue; }
+    if(/^DATES?\s*[:\-]/i.test(line)){ const d=findDates(line); if(d.length){res.start=d[0];res.end=d[1]||d[0];} continue; }
+    if(/^(DESTINATION|DEST|STAY|LEG)\s*[:\-]/i.test(line)){
+      let rest=line.replace(/^(DESTINATION|DEST|STAY|LEG)\s*[:\-]\s*/i,'');
+      let place=rest,s='',e='';
+      if(rest.indexOf('|')>=0){ const b=rest.split('|'); place=b[0]; const d=findDates(b.slice(1).join(' ')); if(d.length){s=d[0];e=d[1]||d[0];} }
+      else { const d=findDates(rest); if(d.length){ const idx=rest.search(dateRe); place=rest.slice(0,idx); s=d[0];e=d[1]||d[0]; } }
+      place=place.replace(/[|,(\-–—]+\s*$/,'').replace(/[*_`]/g,'').trim();
+      if(place)res.legs.push({place,start:s,end:e});
+      continue;
+    }
+    if(/^DAY\b/i.test(line)||/^\d{4}-\d{2}-\d{2}/.test(line)){
+      const d=findDates(line);
+      if(d.length){ curDay=d[0]; if(!res.days[curDay])res.days[curDay]=[]; continue; }
+      const n=line.match(/^DAY\s+(\d+)/i); if(n){ curDay={rel:+n[1]}; continue; }
+      continue;
+    }
+    if(/^[-*•·]/.test(line)){
+      if(curDay==null)continue;
+      const body=line.replace(/^[-*•·]\s*/,'').replace(/[*_`]/g,'');
+      const parts=body.split('|').map(x=>x.trim());
+      let start='',title='',address='',notes='';
+      if(isTimeToken(parts[0])){ start=normTime(parts[0]); title=parts[1]||''; address=parts[2]||''; notes=parts.slice(3).filter(Boolean).join(' · '); }
+      else { const tm=parts[0].match(/^(\d{1,2}:\d{2}\s*(?:am|pm)?|\d{1,2}\s*(?:am|pm))\s+(.+)$/i);
+        if(tm){ start=normTime(tm[1]); title=tm[2]; } else title=parts[0];
+        address=parts[1]||''; notes=parts.slice(2).filter(Boolean).join(' · '); }
+      title=title.trim(); if(!title)continue;
+      const item={start,title,address:address.trim(),notes:notes.trim(),category:inferCat(title+' '+notes)};
+      if(typeof curDay==='object')res._rel.push({rel:curDay.rel,item});
+      else res.days[curDay].push(item);
+    }
+  }
+  // provisional start (for resolving "DAY N" lines) from DATES or the earliest dated day
+  if(!res.start){ const abs=Object.keys(res.days).sort(); if(abs.length)res.start=abs[0]; }
+  if(res._rel.length&&res.start){ res._rel.forEach(r=>{ const day=addDays(res.start,r.rel-1); (res.days[day]=res.days[day]||[]).push(r.item); }); }
+  delete res._rel;
+  const all=[...Object.keys(res.days),...res.legs.flatMap(l=>[l.start,l.end])].filter(Boolean).sort();
+  if(!res.start&&all.length)res.start=all[0];
+  if(!res.end&&all.length)res.end=all[all.length-1];
+  return res;
+}
+
+function aiModal(id){
+  _aiTargetId=id||null; _aiParsed=null;
+  sheet('Upload from AI',
+    `<div class="aihelp">Ask Claude — or any AI — to plan your trip, then paste its whole reply here to auto-fill everything.
+       <ol style="margin:8px 0 0;padding-left:18px;line-height:1.7">
+         <li>Tap <b>Copy AI prompt</b> below.</li>
+         <li>Paste it into an AI, add your trip details, and send.</li>
+         <li>Copy the AI's entire reply and paste it in the box.</li>
+       </ol></div>
+     <button class="btn ghost sm" id="ai-copy" style="margin:10px 0">${svg('copy')} Copy AI prompt</button>
+     <details style="margin:2px 0 12px"><summary style="cursor:pointer;font-size:13px;opacity:.85">See the format the AI should use</summary><pre class="aifmt">${esc(FORMAT_EXAMPLE)}</pre></details>
+     <div class="field"><label>Paste the AI's reply</label><textarea id="ai-text" rows="8" placeholder="TRIP: ...&#10;DATES: 2027-01-15 to ...&#10;DESTINATION: ...&#10;&#10;DAY 2027-01-15&#10;- 09:00 | ..."></textarea></div>
+     <div id="ai-preview"></div>`,
+    `<button class="btn ghost" data-close>Cancel</button><button class="btn" data-aiparse="${id||''}">${svg('sparkle')} Preview</button>`);
+  const cp=document.getElementById('ai-copy');
+  if(cp)cp.onclick=()=>{ const done=()=>{cp.innerHTML=svg('check')+' Copied!';setTimeout(()=>{cp.innerHTML=svg('copy')+' Copy AI prompt';},1600);};
+    try{ if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(AI_PROMPT).then(done).catch(()=>fallbackCopy(AI_PROMPT,done)); else fallbackCopy(AI_PROMPT,done); }
+    catch(e){ fallbackCopy(AI_PROMPT,done); } };
+}
+function fallbackCopy(text,cb){ const ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.focus(); ta.select(); try{document.execCommand('copy');cb&&cb();}catch(e){} document.body.removeChild(ta); }
+
+function aiPreview(id){
+  const ta=document.getElementById('ai-text'), box=document.getElementById('ai-preview'); if(!ta||!box)return;
+  const p=parseAItext(ta.value); _aiParsed=p; _aiTargetId=id||null;
+  const dayCount=p?Object.keys(p.days).length:0, actCount=p?Object.values(p.days).reduce((n,a)=>n+a.length,0):0;
+  if(!p||(!p.legs.length&&!dayCount&&!p.name)){ box.innerHTML=`<div class="aierr">Couldn't read a trip from that text. Make sure you pasted the AI's reply using the TRIP / DATES / DESTINATION / DAY lines shown above.</div>`; return; }
+  let s=`<div class="aiok"><b>Found:</b> ${p.name?esc(p.name)+' · ':''}${p.legs.length} destination${p.legs.length===1?'':'s'} · ${dayCount} day${dayCount===1?'':'s'} · ${actCount} activit${actCount===1?'y':'ies'}${p.start?'<br><span class="mut">'+fmtD(p.start)+' → '+fmtD(p.end)+'</span>':''}</div>`;
+  if(id){ s+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button class="btn" data-aiimport="add">${svg('plus')} Add to this trip</button>
+      <button class="btn ghost" data-aiimport="replace">Replace itinerary</button></div>
+      <div class="hint" style="margin-top:8px">Add keeps everything you already have. Replace clears this trip's destinations &amp; activities first (its dates &amp; name update too).</div>`;
+  } else s+=`<div style="margin-top:12px"><button class="btn block" data-aiimport="new">${svg('check')} Create this trip</button></div>`;
+  box.innerHTML=s;
+}
+function applyParsedInto(t,p,allowMeta){
+  if(allowMeta){ if(p.name)t.name=p.name; if(p.start)t.start=p.start; if(p.end)t.end=p.end; if(!t.dest&&p.legs[0])t.dest=p.legs[0].place; }
+  if(!Array.isArray(t.legs))t.legs=[]; if(!Array.isArray(t.items))t.items=[];
+  const have=new Set(t.legs.map(l=>(l.place||'').toLowerCase()));
+  p.legs.forEach(l=>{ if(l.place&&!have.has(l.place.toLowerCase())){ t.legs.push({id:uid(),place:l.place,start:l.start||'',end:l.end||''}); have.add(l.place.toLowerCase()); } });
+  const valid=new Set(daysList(t));
+  let maxOrder=t.items.reduce((m,i)=>Math.max(m,i.order??0),0);
+  Object.keys(p.days).forEach(day=>{ p.days[day].forEach(a=>{
+    t.items.push({id:uid(),title:a.title,category:a.category||'sight',start:a.start||'',end:a.end||'',
+      address:a.address||'',notes:a.notes||'',day:valid.has(day)?day:null,who:[],order:++maxOrder}); }); });
+}
+function aiImport(mode){
+  const p=_aiParsed; if(!p){closeModal();return;}
+  if(mode==='new'){
+    const nt={id:uid(),name:p.name||'Imported trip',dest:(p.legs[0]&&p.legs[0].place)||'',start:p.start||'',end:p.end||'',
+      destTZ:null,homeTZ:null,homeCity:'',currency:{code:'CAD',perCad:1},
+      party:[],legs:[],hotels:[],items:[],expenses:[],budgets:{},packing:[],transports:[]};
+    const g=geoLookup(nt.dest); if(g){ nt.currency={code:g.code,perCad:g.rate}; nt.destTZ=g.tz; }
+    applyParsedInto(nt,p,true);
+    S.trips[nt.id]=nt; S.order.push(nt.id); S.active=nt.id; S.ui.view='plan'; S.ui._jumped=false;
+    save(); closeModal(); render(); return;
+  }
+  const t=_aiTargetId?S.trips[_aiTargetId]:trip(); if(!t){closeModal();return;}
+  if(mode==='replace'){ t.legs=[]; t.items=[]; }
+  applyParsedInto(t,p,mode==='replace');
+  save(); closeModal(); render();
 }
 
 // ---- leg / hotel / transport / person / expense / pack / budget modals
@@ -1761,10 +2029,14 @@ document.addEventListener('click',e=>{
   if((el=find('data-viewmedia'))){mediaModal(el.dataset.viewmedia);return;}
   if((el=find('data-openmedia'))){openMedia(el.dataset.openmedia);return;}
   if((el=find('data-delmedia'))){const id=el.dataset.delmedia;confirmDel('Delete this file? This removes it for everyone in the trip.',()=>mediaDelete(id));return;}
-  if((el=find('data-open'))){S.active=el.dataset.open;S.ui.view='plan';S.ui._jumped=false;save();render();return;}
-  if(find('data-act')){ const a=find('data-act').dataset.act; act(a); return; }
+  // trip-card buttons must be checked BEFORE data-open: they sit inside the card,
+  // which itself carries data-open, so the card's open handler would otherwise swallow them.
   if((el=find('data-dup'))){dupTrip(el.dataset.dup);return;}
   if((el=find('data-deltrip'))){confirmDel('Delete this trip and everything in it?',()=>{delete S.trips[el.dataset.deltrip];S.order=S.order.filter(x=>x!==el.dataset.deltrip);if(S.active===el.dataset.deltrip)S.active=null;save();render();});return;}
+  if((el=find('data-aiparse'))){aiPreview(el.dataset.aiparse);return;}
+  if((el=find('data-aiimport'))){aiImport(el.dataset.aiimport);return;}
+  if((el=find('data-open'))){S.active=el.dataset.open;S.ui.view='plan';S.ui._jumped=false;save();render();return;}
+  if(find('data-act')){ const a=find('data-act').dataset.act; act(a); return; }
   if((el=find('data-prep'))){S.ui.prepTab=el.dataset.prep;save();render();return;}
   // day jump + rename
   if((el=find('data-jump'))){const k=el.dataset.jump;const node=document.querySelector(k==='wish'?'.wishlist':`[data-dayblock="${k}"]`);if(node)node.scrollIntoView({block:'start',behavior:'smooth'});return;}
@@ -1827,6 +2099,7 @@ function act(a){
   switch(a){
     case 'home':S.ui.view='trips';save();render();break;
     case 'new-trip':tripModal(null);break;
+    case 'ai-import':aiModal(S.ui.view==='trips'?null:S.active);break;
     case 'settings':tripModal(S.active);break;
     case 'theme':toggleTheme();break;
     case 'seed':seed();break;
