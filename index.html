@@ -30,6 +30,7 @@
   --shadow-2:0 4px 12px rgba(16,24,40,.08),0 2px 6px rgba(16,24,40,.06);
   --shadow-3:0 12px 32px rgba(16,24,40,.14);
   --r-s:12px; --r-m:18px; --r-l:26px;
+  --hdrH:60px; --stickH:128px;
   color-scheme:light;
 }
 :root:not([data-theme="light"]){ @media (prefers-color-scheme:dark){
@@ -104,8 +105,8 @@ input,select,textarea{font:inherit;color:inherit}
   padding:8px 8px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -4px 20px rgba(16,24,40,.06);
 }
 @media(min-width:760px){
-  .nav{position:sticky;top:60px;bottom:auto;max-width:220px;flex-direction:column;justify-content:flex-start;
-    gap:4px;border-top:none;border-right:1px solid var(--line);box-shadow:none;height:calc(100vh - 60px);padding:12px 10px}
+  .nav{position:sticky;top:var(--hdrH);bottom:auto;max-width:220px;flex-direction:column;justify-content:flex-start;
+    gap:4px;border-top:none;border-right:1px solid var(--line);box-shadow:none;height:calc(100vh - var(--hdrH));padding:12px 10px}
 }
 .navbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;border-radius:14px;color:var(--ink-3);transition:.15s}
 .navbtn .pill{padding:3px 18px;border-radius:999px;transition:.18s;display:grid;place-items:center}
@@ -161,8 +162,10 @@ input,select,textarea{font:inherit;color:inherit}
 .tripcard .acts{display:flex;gap:6px;padding:0 12px 12px;margin-top:auto}
 
 /* ---------- Itinerary ---------- */
-.legbar{display:flex;gap:8px;overflow-x:auto;padding:10px 2px 12px;scrollbar-width:thin;
-  position:sticky;top:60px;z-index:20;background:var(--bg)}
+.legbar{display:flex;gap:8px;overflow-x:auto;padding:12px 2px;scrollbar-width:thin;
+  position:sticky;top:var(--hdrH);z-index:20;background:var(--bg);margin-top:-16px}
+@media(min-width:760px){ .legbar{margin-top:-22px} }
+@media(min-width:1440px){ .legbar{margin-top:-26px} }
 .legchip{flex:none;padding:8px 14px;border-radius:14px;background:var(--sc);border:1px solid var(--line);min-width:118px;position:relative;text-align:left;transition:.14s}
 button.legchip{cursor:pointer}
 .legchip.jumpable:hover{background:var(--sc-low);border-color:var(--primary);transform:translateY(-1px)}
@@ -171,7 +174,7 @@ button.legchip{cursor:pointer}
 .legchip .legedit{position:absolute;top:4px;right:4px;width:22px;height:22px;display:grid;place-items:center;border-radius:7px;color:var(--ink-3);opacity:.55}
 .legchip .legedit:hover{opacity:1;background:color-mix(in srgb,var(--ink) 10%,transparent)}
 .legchip .legedit svg{width:13px;height:13px}
-.day{margin-bottom:16px;scroll-margin-top:128px}
+.day{margin-bottom:16px;scroll-margin-top:calc(var(--stickH) + 10px)}
 .day.today .dayhead{background:var(--primary-c);color:var(--on-primary-c)}
 .day.today .dayhead .ddate{color:inherit;opacity:.8}
 .dayhead{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--sc-low);border:1px solid var(--line);border-left:4px solid var(--dc,var(--primary));border-radius:var(--r-m) var(--r-m) 0 0}
@@ -233,8 +236,8 @@ button.legchip{cursor:pointer}
 @media(min-width:1080px){
   .planwrap{display:grid;grid-template-columns:minmax(0,1fr) 238px;gap:22px;align-items:start}
   .planmain{min-width:0}
-  .summary-rail{display:block;position:sticky;top:80px;background:var(--surface);border:1px solid var(--line);
-    border-radius:var(--r-m);padding:8px;box-shadow:var(--shadow-1);max-height:calc(100vh - 100px);overflow:auto}
+  .summary-rail{display:block;position:sticky;top:calc(var(--hdrH) + 20px);background:var(--surface);border:1px solid var(--line);
+    border-radius:var(--r-m);padding:8px;box-shadow:var(--shadow-1);max-height:calc(100vh - var(--hdrH) - 40px);overflow:auto}
   .summary-strip{display:none!important}
 }
 .sum-head{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);padding:8px 10px 6px}
@@ -727,10 +730,23 @@ function render(){
   else if(v==='prep') html+=viewPrep(t);
   html+=`</div></div>`;
   app().innerHTML=html;
+  syncSticky();
   if(t){ ensureMedia(); paintMedia(); }
   if(S.ui.view==='plan'&&t) afterPlan(t);
   if(S.ui.view==='map'&&t) afterMap(t);
 }
+// Keep sticky offsets (leg bar, side nav, day jump landing) in step with the
+// header's real rendered height, which grows past its 60px min with the trip name.
+function syncSticky(){
+  const tb=document.querySelector('.topbar');
+  const h=tb?Math.round(tb.getBoundingClientRect().height):60;
+  const lb=document.querySelector('.legbar');
+  const lh=lb?Math.round(lb.getBoundingClientRect().height):0;
+  const rs=document.documentElement.style;
+  rs.setProperty('--hdrH',h+'px');
+  rs.setProperty('--stickH',(h+lh)+'px');
+}
+addEventListener('resize',()=>{ clearTimeout(window.__syncT); window.__syncT=setTimeout(syncSticky,120); });
 function navHTML(){
   const v=S.ui.view;
   const items=[['plan','map','Plan'],['book','ticket','Bookings'],['map','globe','Map'],['money','wallet','Money'],['prep','pack','Prep']];
@@ -1970,9 +1986,13 @@ function aiPreview(id){
   const p=parseAItext(ta.value); _aiParsed=p; _aiTargetId=id||null;
   const dayCount=p?Object.keys(p.days).length:0, actCount=p?Object.values(p.days).reduce((n,a)=>n+a.length,0):0;
   if(!p||(!p.legs.length&&!dayCount&&!p.name)){ box.innerHTML=`<div class="aierr">Couldn't read a trip from that text. Make sure you pasted the AI's reply using the TRIP / DATES / DESTINATION / DAY lines shown above.</div>`; return; }
-  const tgt=id?S.trips[id]:null; const willPack=!id||(tgt&&(!tgt.packing||!tgt.packing.length));
+  const tgt=id?S.trips[id]:null;
   const packN=p.packing?p.packing.length:0;
-  const packMsg=willPack?('<br><span class="mut">'+svg('pack')+' '+(packN?(packN+' packing item'+(packN===1?'':'s')+' from your plan'):'a starter packing list will be added')+'</span>'):'';
+  const hasPack=tgt&&tgt.packing&&tgt.packing.length;
+  // The AI's list always merges on top of whatever's there; the in-app starter only fills an empty list.
+  const willStarter = packN===0 && (!id || !hasPack);
+  const packMsg = packN ? ('<br><span class="mut">'+svg('pack')+' '+packN+' packing item'+(packN===1?'':'s')+' from your plan'+(hasPack?' added to your list':'')+'</span>')
+                        : (willStarter ? '<br><span class="mut">'+svg('pack')+' a starter packing list will be added</span>' : '');
   let s=`<div class="aiok"><b>Found:</b> ${p.name?esc(p.name)+' · ':''}${p.legs.length} destination${p.legs.length===1?'':'s'} · ${dayCount} day${dayCount===1?'':'s'} · ${actCount} activit${actCount===1?'y':'ies'}${p.start?'<br><span class="mut">'+fmtD(p.start)+' → '+fmtD(p.end)+'</span>':''}${packMsg}</div>`;
   if(id){ s+=`<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
       <button class="btn" data-aiimport="add">${svg('plus')} Add to this trip</button>
@@ -2011,8 +2031,9 @@ function suggestPacking(t){
   return list;
 }
 function addSuggestedPacking(t){ if(!Array.isArray(t.packing))t.packing=[]; if(t.packing.length)return; suggestPacking(t).forEach(txt=>t.packing.push({id:uid(),text:txt,done:false})); }
-// Use a packing list the AI supplied (only when the trip has none yet — never overwrites the user's).
-function addParsedPacking(t,arr){ if(!Array.isArray(t.packing))t.packing=[]; if(t.packing.length)return;
+// Merge a packing list the AI supplied ON TOP of whatever is already there
+// (case-insensitive dedupe so re-imports don't pile up duplicates).
+function addParsedPacking(t,arr){ if(!Array.isArray(t.packing))t.packing=[];
   arr.forEach(raw=>{ const txt=String(raw).trim(); if(txt&&!t.packing.some(x=>x.text.toLowerCase()===txt.toLowerCase()))t.packing.push({id:uid(),text:txt,done:false}); }); }
 function applyParsedInto(t,p,allowMeta){
   if(allowMeta){ if(p.name)t.name=p.name; if(p.start)t.start=p.start; if(p.end)t.end=p.end; if(!t.dest&&p.legs[0])t.dest=p.legs[0].place; }
