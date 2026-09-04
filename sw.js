@@ -1,6 +1,6 @@
 /* Atlas service worker — offline app shell + runtime font cache.
    Firebase realtime traffic is never intercepted, so live sync is unaffected. */
-const CACHE = 'atlas-v4';
+const CACHE = 'atlas-v5';
 const SHELL = [
   './',
   './index.html',
