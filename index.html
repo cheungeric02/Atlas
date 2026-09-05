@@ -108,8 +108,9 @@ input,select,textarea{font:inherit;color:inherit}
   .nav{position:sticky;top:var(--hdrH);bottom:auto;max-width:220px;flex-direction:column;justify-content:flex-start;
     gap:4px;border-top:none;border-right:1px solid var(--line);box-shadow:none;height:calc(100vh - var(--hdrH));padding:12px 10px}
 }
-.navbtn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 4px;border-radius:14px;color:var(--ink-3);transition:.15s}
-.navbtn .pill{padding:3px 18px;border-radius:999px;transition:.18s;display:grid;place-items:center}
+.navbtn{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 2px;border-radius:14px;color:var(--ink-3);transition:.15s}
+.navbtn .pill{padding:3px 12px;border-radius:999px;transition:.18s;display:grid;place-items:center}
+.navbtn span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .navbtn svg{width:24px;height:24px}
 .navbtn span{font-size:11px;font-weight:500}
 .navbtn[aria-current="true"]{color:var(--primary)}
@@ -587,7 +588,7 @@ let S={v:1,trips:{},order:[],active:null,ui:{view:'trips',prepTab:'packing'}};
    on any trip entering the app so views can safely call .length/.map/.find. */
 function normTrip(t){
   if(!t||typeof t!=='object') return t;
-  ['party','legs','hotels','items','expenses','packing','transports','comments'].forEach(k=>{ if(!Array.isArray(t[k])) t[k]=[]; });
+  ['party','legs','hotels','items','expenses','packing','transports','comments','souvenirs'].forEach(k=>{ if(!Array.isArray(t[k])) t[k]=[]; });
   if(!t.budgets||typeof t.budgets!=='object'||Array.isArray(t.budgets)) t.budgets={};
   if(!t.dayNames||typeof t.dayNames!=='object'||Array.isArray(t.dayNames)) t.dayNames={};
   if(!t.currency||typeof t.currency!=='object'||Array.isArray(t.currency)) t.currency={code:'HKD',perCad:5.6};
@@ -728,6 +729,7 @@ function render(){
   else if(v==='book') html+=viewBookings(t);
   else if(v==='map') html+=viewMap(t);
   else if(v==='money') html+=viewMoney(t);
+  else if(v==='shop') html+=viewShop(t);
   else if(v==='prep') html+=viewPrep(t);
   html+=`</div></div>`;
   app().innerHTML=html;
@@ -750,7 +752,7 @@ function syncSticky(){
 addEventListener('resize',()=>{ clearTimeout(window.__syncT); window.__syncT=setTimeout(syncSticky,120); });
 function navHTML(){
   const v=S.ui.view;
-  const items=[['plan','map','Plan'],['book','ticket','Bookings'],['map','globe','Map'],['money','wallet','Money'],['prep','pack','Prep']];
+  const items=[['plan','map','Plan'],['book','ticket','Bookings'],['map','globe','Map'],['money','wallet','Money'],['shop','bag','Shop'],['prep','pack','Prep']];
   return `<nav class="nav">
     ${items.map(([k,ic,lb])=>`<button class="navbtn" data-nav="${k}" aria-current="${v===k}">
       <span class="pill">${svg(ic)}</span><span>${lb}</span></button>`).join('')}
@@ -1688,6 +1690,25 @@ function prepPrint(t){
   return h;
 }
 
+/* ================= VIEW: SHOP (souvenir wishlist) ================= */
+function viewShop(t){
+  if(!Array.isArray(t.souvenirs))t.souvenirs=[];
+  const list=t.souvenirs, got=list.filter(s=>s.got).length;
+  let h=`<div class="section-title"><h2>Shop</h2><div class="spacer"></div>
+    <button class="btn sm" data-act="add-souv">${svg('plus')} Add</button></div>`;
+  h+=`<div class="card" style="padding:0"><div style="padding:12px 14px;display:flex;align-items:center">
+    <b>Souvenirs &amp; things to buy</b>
+    <span class="muted" style="font-size:12px;margin-left:8px">${got}/${list.length} bought</span></div>`;
+  if(!list.length) h+=`<div class="muted" style="padding:0 14px 16px;font-size:13px">Nothing on the list yet — tap <b>Add</b> to jot down anything you want to pick up on this trip.</div>`;
+  for(const s of list){
+    h+=`<div class="check ${s.got?'done':''}"><input type="checkbox" ${s.got?'checked':''} data-souv="${s.id}">
+      <label>${esc(s.text)}${s.note?`<span class="muted" style="display:block;font-size:12px;font-weight:400">${esc(s.note)}</span>`:''}</label>
+      <button class="iconbtn" style="width:34px;height:34px" data-delsouv="${s.id}">${svg('trash')}</button></div>`;
+  }
+  h+=`</div>`;
+  return h;
+}
+
 /* ================= MODALS ================= */
 const mroot=()=>document.getElementById('modal-root');
 function closeModal(){mroot().innerHTML=''; if(pendingRemote){pendingRemote=false; render();}}
@@ -2102,6 +2123,10 @@ function personModal(){
   sheet('Add traveler',field('Name',`<input id="p-name" placeholder="Alex">`),`<button class="btn block" data-saveperson>Add</button>`);
 }
 function packModal(){ sheet('Add packing item',field('Item',`<input id="pk-text" placeholder="Passport">`),`<button class="btn block" data-savepack>Add</button>`); }
+function souvModal(){ sheet('Add souvenir',
+  field('Item',`<input id="sv-text" placeholder="Matcha Kit Kats">`)+
+  field('Note (optional)',`<input id="sv-note" placeholder="For Mom · Don Quijote · ¥800">`),
+  `<button class="btn block" data-savesouv>Add</button>`); }
 function expModal(id){
   const t=trip();const e=id?t.expenses.find(x=>x.id===id):{title:'',amount:'',category:'food',paidBy:t.party[0]?.id||'',splitAmong:t.party.map(p=>p.id),date:todayISO()};
   sheet(id?'Edit expense':'Add expense',
@@ -2200,6 +2225,9 @@ document.addEventListener('click',e=>{
   // pack
   if(find('data-savepack')){savePack();return;}
   if((el=find('data-delpack'))){const t=trip();t.packing=t.packing.filter(x=>x.id!==el.dataset.delpack);save();render();return;}
+  // souvenirs
+  if(find('data-savesouv')){saveSouv();return;}
+  if((el=find('data-delsouv'))){const t=trip();t.souvenirs=(t.souvenirs||[]).filter(x=>x.id!==el.dataset.delsouv);save();render();return;}
   // expense
   if((el=find('data-editexp'))){expModal(el.dataset.editexp);return;}
   if((el=find('data-saveexp'))){saveExp(el.dataset.saveexp||null);return;}
@@ -2216,6 +2244,7 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
   const el=e.target;
   if(el.matches('[data-pack]')){const p=trip().packing.find(x=>x.id===el.dataset.pack);if(p){p.done=el.checked;save();render();}}
+  if(el.matches('[data-souv]')){const s=(trip().souvenirs||[]).find(x=>x.id===el.dataset.souv);if(s){s.got=el.checked;save();render();}}
 });
 // live currency converter (two-way, no re-render)
 document.addEventListener('input',e=>{
@@ -2236,6 +2265,7 @@ function act(a){
     case 'add-transport':transportModal(null);break;
     case 'add-person':personModal();break;
     case 'add-pack':packModal();break;
+    case 'add-souv':souvModal();break;
     case 'add-exp':expModal(null);break;
     case 'edit-budget':budgetModal();break;
     case 'print-all':printAll();break;
@@ -2255,6 +2285,7 @@ function saveTransport(id){const t=trip();const g=x=>document.getElementById(x).
 function savePerson(){const t=trip();const n=document.getElementById('p-name').value.trim();if(!n)return;
   t.party.push({id:uid(),name:n,color:PARTY_COLORS[t.party.length%PARTY_COLORS.length]});save();closeModal();render();}
 function savePack(){const t=trip();const x=document.getElementById('pk-text').value.trim();if(!x)return;t.packing.push({id:uid(),text:x,done:false});save();closeModal();render();}
+function saveSouv(){const t=trip();if(!Array.isArray(t.souvenirs))t.souvenirs=[];const x=document.getElementById('sv-text').value.trim();if(!x)return;const n=document.getElementById('sv-note').value.trim();t.souvenirs.push({id:uid(),text:x,note:n,got:false});save();closeModal();render();}
 function saveExp(id){const t=trip();const g=x=>document.getElementById(x).value;const title=g('e-title').trim();if(!title)return;
   const d={title,amount:Number(g('e-amt'))||0,category:readCat(),paidBy:g('e-payer'),splitAmong:readWho(),date:g('e-date')};
   if(id)Object.assign(t.expenses.find(x=>x.id===id),d);else t.expenses.push({id:uid(),...d});save();closeModal();render();}
