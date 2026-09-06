@@ -175,13 +175,21 @@ button.legchip{cursor:pointer}
 .legchip .legedit{position:absolute;top:4px;right:4px;width:22px;height:22px;display:grid;place-items:center;border-radius:7px;color:var(--ink-3);opacity:.55}
 .legchip .legedit:hover{opacity:1;background:color-mix(in srgb,var(--ink) 10%,transparent)}
 .legchip .legedit svg{width:13px;height:13px}
-.day{margin-bottom:16px;scroll-margin-top:calc(var(--stickH) + 10px)}
+.day{margin-bottom:16px;scroll-margin-top:calc(var(--jumpH, var(--stickH)) + 12px)}
 .day.today .dayhead{background:var(--primary-c);color:var(--on-primary-c)}
 .day.today .dayhead .ddate{color:inherit;opacity:.8}
 .dayhead{display:flex;align-items:center;gap:8px;padding:9px 12px;background:var(--sc-low);border:1px solid var(--line);border-left:4px solid var(--dc,var(--primary));border-radius:var(--r-m) var(--r-m) 0 0}
 .dayhead .daygrip{flex:none;width:24px;height:32px;display:grid;place-items:center;color:var(--ink-3);cursor:grab;touch-action:none;border-radius:8px}
 .dayhead .daygrip:hover{background:var(--sc);color:var(--ink-2)}
 .dayhead .daygrip svg{width:18px;height:18px}
+.dayhead .daylock{flex:none;width:28px;height:32px;display:grid;place-items:center;color:var(--ink-3);cursor:pointer;border-radius:8px}
+.dayhead .daylock:hover{background:var(--sc);color:var(--ink-2)}
+.dayhead .daylock svg{width:16px;height:16px}
+.day.locked .daygrip{display:none}
+.day.locked .daylock{color:var(--primary);background:var(--primary-c)}
+.day.today .daylock{color:inherit}
+.day.today.locked .daylock{background:rgba(255,255,255,.25);color:#fff}
+.day.locked .item .grip{visibility:hidden}
 .dayhead .dnum{font-family:"Bricolage Grotesque";font-weight:700;font-size:12px;color:#fff;background:var(--dc,var(--primary));padding:3px 10px;border-radius:999px;flex:none;letter-spacing:.01em}
 .dayhead .dtitle{display:flex;flex-direction:column;align-items:flex-start;text-align:left;line-height:1.15;min-width:0;padding:2px 4px;border-radius:8px}
 .dayhead .dtitle:hover{background:color-mix(in srgb,var(--ink) 6%,transparent)}
@@ -198,6 +206,10 @@ button.legchip{cursor:pointer}
 .day.collapsed .dayhead{border-radius:var(--r-m)}
 .plantools{display:flex;justify-content:flex-end;padding:0 2px 10px}
 .plantools .btn{color:var(--ink-2)}
+/* Desktop: freeze the "Collapse all days" toolbar just under the destinations bar. */
+@media(min-width:1080px){
+  .plantools{position:sticky;top:var(--stickH);z-index:18;background:var(--bg);padding-top:10px;margin-top:-4px}
+}
 .based{font-size:11px;font-weight:600;display:inline-flex;gap:5px;align-items:center;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--cat-hotel) 16%,transparent);color:var(--cat-hotel);border:1px solid transparent;cursor:pointer;max-width:180px}
 .based:hover{border-color:color-mix(in srgb,var(--cat-hotel) 40%,transparent)}
 .based.nohotel{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
@@ -250,7 +262,8 @@ button.legchip{cursor:pointer}
 .sum-day .sd-txt b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .sum-day .sd-sub{font-size:11.5px;font-weight:400;color:var(--ink-3);margin-top:1px}
 .sum-day.now .sd-sub{color:inherit;opacity:.8}
-.summary-strip{display:flex;gap:8px;overflow-x:auto;padding:0 2px 12px;scrollbar-width:thin}
+.summary-strip{display:flex;gap:8px;overflow-x:auto;padding:8px 2px 10px;scrollbar-width:thin;
+  position:sticky;top:var(--stickH);z-index:19;background:var(--bg)}
 .sum-chip{flex:none;display:flex;flex-direction:column;align-items:flex-start;padding:6px 13px;border-radius:12px;
   background:var(--sc);border-left:3px solid var(--dc,var(--primary));font-size:13px;font-weight:600;color:var(--ink-2)}
 .sum-chip.now{background:var(--primary-c);color:var(--on-primary-c)}
@@ -500,6 +513,8 @@ const I = {
   plane:'<path d="M21 15.5 14 12V5a2 2 0 0 0-4 0v7l-7 3.5V17l7-2v3l-2 1.5V21l3.5-1L15 21v-1.5L13 18v-3l7 2z"/>',
   today:'<path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zm12 7v10H5V9zm-7 2-3 5h2v2h2v-2h2z"/>',
   drag:'<path d="M9 5h2v2H9zm4 0h2v2h-2zM9 9h2v2H9zm4 0h2v2h-2zm-4 4h2v2H9zm4 0h2v2h-2zm-4 4h2v2H9zm4 0h2v2h-2z"/>',
+  lock:'<path d="M6 10V8a6 6 0 0 1 12 0v2h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm2 0h8V8a4 4 0 0 0-8 0zm4 4a1.5 1.5 0 0 0-.75 2.8V18h1.5v-1.2A1.5 1.5 0 0 0 12 14z"/>',
+  unlock:'<path d="M6 10V8a6 6 0 0 1 11.5-2.4l-1.8.8A4 4 0 0 0 8 8v2h11a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-9a1 1 0 0 1 1-1zm6 4a1.5 1.5 0 0 0-.75 2.8V18h1.5v-1.2A1.5 1.5 0 0 0 12 14z"/>',
   sort:'<path d="M6 4v13l-2.5-2.5L2 16l5 5 5-5-1.5-1.5L8 17V4zm8 1h8v2h-8zm0 5h6v2h-6zm0 5h4v2h-4z"/>',
   cal:'<path d="M7 2v2H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-2V2h-2v2H9V2zm12 7v10H5V9z"/>',
   people:'<path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm6 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM3 19a6 6 0 0 1 12 0zm12.5-5.9A6 6 0 0 1 21 19h-4a7.9 7.9 0 0 0-2.2-4.6z"/>',
@@ -591,6 +606,7 @@ function normTrip(t){
   ['party','legs','hotels','items','expenses','packing','transports','comments','souvenirs'].forEach(k=>{ if(!Array.isArray(t[k])) t[k]=[]; });
   if(!t.budgets||typeof t.budgets!=='object'||Array.isArray(t.budgets)) t.budgets={};
   if(!t.dayNames||typeof t.dayNames!=='object'||Array.isArray(t.dayNames)) t.dayNames={};
+  if(!t.dayLocks||typeof t.dayLocks!=='object'||Array.isArray(t.dayLocks)) t.dayLocks={};
   if(!t.currency||typeof t.currency!=='object'||Array.isArray(t.currency)) t.currency={code:'HKD',perCad:5.6};
   (t.items||[]).forEach(i=>{ if(!Array.isArray(i.who)) i.who=[]; if(i.comments!=null&&!Array.isArray(i.comments)) i.comments=[]; });
   (t.expenses||[]).forEach(e=>{ if(!Array.isArray(e.splitAmong)) e.splitAmong=[]; });
@@ -610,6 +626,10 @@ function toggleCollapseDay(day){ const t=trip(); if(!t)return; const c=collapsed
 function toggleCollapseAll(){ const t=trip(); if(!t)return; const dl=daysList(t); const c=collapsedMap(t); const allCol=dl.length&&dl.every(d=>c[d]);
   if(allCol) dl.forEach(d=>delete c[d]); else dl.forEach(d=>{c[d]=true;}); saveLocal(); render(); }
 function updateCollapseAllLabel(t){ const b=document.querySelector('[data-collapseall]'); if(!b)return; const dl=daysList(t); const c=collapsedMap(t); const allCol=dl.length&&dl.every(d=>c[d]); b.innerHTML=svg('chev')+' '+(allCol?'Expand all days':'Collapse all days'); }
+// Per-day lock — freezes the whole day AND its activities against drag/reorder.
+// Saved on the trip (t.dayLocks) so it syncs to every device and collaborator, like day names.
+function dayLocked(t,day){ return !!(t&&t.dayLocks&&t.dayLocks[day]); }
+function toggleDayLock(day){ const t=trip(); if(!t)return; if(!t.dayLocks)t.dayLocks={}; if(t.dayLocks[day])delete t.dayLocks[day]; else t.dayLocks[day]=true; save(); render(); }
 
 /* ===== Live sync — open, whole-trip collaboration over shared bon-echo Firebase =====
    Anyone with the GitHub Pages link sees & edits the same trips in real time.
@@ -660,6 +680,7 @@ function shiftTripDates(t,delta){
   (t.transports||[]).forEach(x=>{if(x.date)x.date=addDays(x.date,delta);});
   (t.expenses||[]).forEach(e=>{if(e.date)e.date=addDays(e.date,delta);});
   if(t.dayNames){const nn={};Object.keys(t.dayNames).forEach(k=>{nn[addDays(k,delta)]=t.dayNames[k];});t.dayNames=nn;}
+  if(t.dayLocks){const nl={};Object.keys(t.dayLocks).forEach(k=>{nl[addDays(k,delta)]=t.dayLocks[k];});t.dayLocks=nl;}
 }
 // After a resize, any activity now outside the date range drops to the Wishlist (bottom) — never deleted.
 function reconcileTripDates(t){
@@ -668,6 +689,7 @@ function reconcileTripDates(t){
   let maxWish=(t.items||[]).filter(i=>!i.day).reduce((m,i)=>Math.max(m,i.order??0),-1);
   (t.items||[]).forEach(i=>{ if(i.day && !inRange.has(i.day)){ i.day=null; i.order=++maxWish; } });
   if(t.dayNames)Object.keys(t.dayNames).forEach(k=>{if(!inRange.has(k))delete t.dayNames[k];});
+  if(t.dayLocks)Object.keys(t.dayLocks).forEach(k=>{if(!inRange.has(k))delete t.dayLocks[k];});
 }
 function money(n){return (n<0?'-':'')+Math.abs(n).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});}
 // Countdown info for a reservation date. Positive days = future.
@@ -748,6 +770,14 @@ function syncSticky(){
   const rs=document.documentElement.style;
   rs.setProperty('--hdrH',h+'px');
   rs.setProperty('--stickH',(h+lh)+'px');
+  // Day-jump landing must clear whatever else is pinned above the days:
+  // the Day-1…N strip on phone/tablet, or the frozen Collapse-all bar on desktop.
+  const wide=innerWidth>=1080;
+  const strip=document.querySelector('.summary-strip');
+  const stripH=(!wide&&strip)?Math.round(strip.getBoundingClientRect().height):0;
+  const pt=document.querySelector('.plantools');
+  const ptH=(wide&&pt)?Math.round(pt.getBoundingClientRect().height):0;
+  rs.setProperty('--jumpH',(h+lh+stripH+ptH)+'px');
 }
 addEventListener('resize',()=>{ clearTimeout(window.__syncT); window.__syncT=setTimeout(syncSticky,120); });
 function navHTML(){
@@ -838,15 +868,16 @@ function viewPlan(t){
   for(let di=0;di<dl.length;di++){
     const day=dl[di]; const isToday=day===today; const dc=locColor(t,day,di);
     const hot=basedHotel(t,day); const leg=legFor(t,day); const isNight=di<dl.length-1;
-    const nm=dayNameOf(t,day); const col=!!cmap[day]; const nItems=itemsFor(t,day).length;
+    const nm=dayNameOf(t,day); const col=!!cmap[day]; const nItems=itemsFor(t,day).length; const lk=dayLocked(t,day);
     let right=`<span class="wxchip" id="wx-${day}" data-wxday="${day}" hidden></span>`;
     if(isToday) right+=`<span class="todaytag">● Today</span>`;
     if(hot) right+=`<button class="based" data-edithotel="${hot.id}" title="View / edit reservation">${svg('bed')} ${esc(hot.name)}</button>`;
     else if(isNight) right+=`<button class="based nohotel" data-addhotel="${day}" title="No hotel booked for this night">${svg('bed')} No hotel</button>`;
     else if(leg) right+=`<span class="based leg">${svg('pin')} ${esc(leg.place)}</span>`;
-    h+=`<div class="day${isToday?' today':''}${col?' collapsed':''}" data-dayblock="${day}" style="--dc:${dc}">
+    h+=`<div class="day${isToday?' today':''}${col?' collapsed':''}${lk?' locked':''}" data-dayblock="${day}" style="--dc:${dc}">
       <div class="dayhead">
         <button class="daygrip" data-daygrip title="Drag to move this whole day" aria-label="Move day">${svg('drag')}</button>
+        <button class="daylock" data-lockday="${day}" title="${lk?'Day locked — tap to unlock and allow moving':'Lock this day to prevent accidental moves'}" aria-label="${lk?'Unlock day':'Lock day'}" aria-pressed="${lk}">${svg(lk?'lock':'unlock')}</button>
         <span class="dnum">Day ${di+1}</span>
         <button class="dtitle" data-nameday="${day}" title="Rename this day">
           <span class="dname">${nm?esc(nm):fmtD(day,{weekday:'long'})}</span>
@@ -1358,6 +1389,7 @@ document.addEventListener('pointerdown',e=>{
   const daygrip=e.target.closest('[data-daygrip]'); if(daygrip){ startDayDrag(e,daygrip); return; }
   const grip=e.target.closest('[data-grip]'); if(!grip) return;
   const item=grip.closest('[data-item]'); if(!item) return;
+  const srcList=item.closest('.daylist'); if(srcList&&dayLocked(trip(),srcList.dataset.day)) return; // locked day → its activities can't move
   e.preventDefault();
   const rect=item.getBoundingClientRect();
   const clone=item.cloneNode(true);
@@ -1383,6 +1415,7 @@ function onDragMove(e){
   drag.clone.style.display='';
   document.querySelectorAll('.droplist.drop-hi').forEach(l=>l.classList.remove('drop-hi'));
   const list=under&&under.closest('.droplist'); if(!list) return;
+  if(dayLocked(trip(),list.dataset.day)) return; // can't drop into a locked (frozen) day
   list.classList.add('drop-hi');
   const after=dragAfter(list,e.clientY);
   if(after==null){ const anchor=list.querySelector('.addrow'); anchor?list.insertBefore(drag.ph,anchor):list.appendChild(drag.ph);}
@@ -1407,6 +1440,7 @@ let ddrag=null;
 function startDayDrag(e,grip){
   const dayEl=grip.closest('[data-dayblock]'); const wrap=document.getElementById('dayswrap');
   if(!dayEl||!wrap||dayEl.dataset.dayblock==='wish') return;
+  if(dayLocked(trip(),dayEl.dataset.dayblock)) return; // locked day can't be dragged/reordered
   e.preventDefault();
   const rect=dayEl.getBoundingClientRect();
   const clone=dayEl.cloneNode(true); clone.classList.add('day-drag-clone');
@@ -1444,13 +1478,14 @@ function reorderDays(fromDay,toIndex){
   const t=trip(); const dl=daysList(t); const fromIndex=dl.indexOf(fromDay);
   if(fromIndex<0) return render();
   // capture each day's contents + name in current order
-  const plans=dl.map(d=>({items:itemsFor(t,d),name:dayNameOf(t,d)}));
+  const plans=dl.map(d=>({items:itemsFor(t,d),name:dayNameOf(t,d),locked:dayLocked(t,d)}));
   const [moved]=plans.splice(fromIndex,1);
   plans.splice(Math.max(0,Math.min(toIndex,plans.length)),0,moved);
-  t.dayNames=t.dayNames||{};
+  t.dayNames=t.dayNames||{}; t.dayLocks=t.dayLocks||{};
   dl.forEach((d,i)=>{ const p=plans[i];
     p.items.forEach((it,oi)=>{it.day=d;it.order=oi;});
     if(p.name)t.dayNames[d]=p.name; else delete t.dayNames[d];
+    if(p.locked)t.dayLocks[d]=true; else delete t.dayLocks[d];
   });
   save(); render();
 }
@@ -2191,6 +2226,7 @@ document.addEventListener('click',e=>{
   // day collapse
   if((el=find('data-collapseday'))){toggleCollapseDay(el.dataset.collapseday);return;}
   if(find('data-collapseall')){toggleCollapseAll();return;}
+  if((el=find('data-lockday'))){toggleDayLock(el.dataset.lockday);return;}
   // day jump + rename
   if((el=find('data-jump'))){const k=el.dataset.jump;const node=document.querySelector(k==='wish'?'.wishlist':`[data-dayblock="${k}"]`);if(node)node.scrollIntoView({block:'start',behavior:'smooth'});return;}
   if((el=find('data-nameday'))){dayNameModal(el.dataset.nameday);return;}
