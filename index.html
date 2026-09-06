@@ -163,10 +163,12 @@ input,select,textarea{font:inherit;color:inherit}
 .tripcard .acts{display:flex;gap:6px;padding:0 12px 12px;margin-top:auto}
 
 /* ---------- Itinerary ---------- */
-.legbar{display:flex;gap:8px;overflow-x:auto;padding:12px 2px;scrollbar-width:thin;
-  position:sticky;top:var(--hdrH);z-index:20;background:var(--bg);margin-top:-16px}
-@media(min-width:760px){ .legbar{margin-top:-22px} }
-@media(min-width:1440px){ .legbar{margin-top:-26px} }
+/* Destinations bar + day-level tools live on one sticky row (.planbar). */
+.planbar{display:flex;align-items:center;gap:10px;position:sticky;top:var(--hdrH);z-index:20;
+  background:var(--bg);margin-top:-16px;padding:12px 0}
+@media(min-width:760px){ .planbar{margin-top:-22px} }
+@media(min-width:1440px){ .planbar{margin-top:-26px} }
+.legbar{display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;flex:1;min-width:0;padding:2px 2px 4px}
 .legchip{flex:none;padding:8px 14px;border-radius:14px;background:var(--sc);border:1px solid var(--line);min-width:118px;position:relative;text-align:left;transition:.14s}
 button.legchip{cursor:pointer}
 .legchip.jumpable:hover{background:var(--sc-low);border-color:var(--primary);transform:translateY(-1px)}
@@ -204,12 +206,13 @@ button.legchip{cursor:pointer}
 .day.collapsed .daycollapse .dcount{display:inline}
 .day.collapsed .daylist,.day.collapsed .memstrip{display:none}
 .day.collapsed .dayhead{border-radius:var(--r-m)}
-.plantools{display:flex;justify-content:flex-end;padding:0 2px 10px}
+.plantools{flex:none;display:flex;align-items:center;gap:6px}
 .plantools .btn{color:var(--ink-2)}
-/* Desktop: freeze the "Collapse all days" toolbar just under the destinations bar. */
-@media(min-width:1080px){
-  .plantools{position:sticky;top:var(--stickH);z-index:18;background:var(--bg);padding-top:10px;margin-top:-4px}
-}
+.plantools .tool{width:36px;height:36px}
+.plantools .tool svg{width:18px;height:18px}
+/* Collapse/Expand label collapses to just the chevron on phones to save row space. */
+.tool-lbl{display:none}
+@media(min-width:760px){ .tool-lbl{display:inline} }
 .based{font-size:11px;font-weight:600;display:inline-flex;gap:5px;align-items:center;padding:4px 10px;border-radius:999px;background:color-mix(in srgb,var(--cat-hotel) 16%,transparent);color:var(--cat-hotel);border:1px solid transparent;cursor:pointer;max-width:180px}
 .based:hover{border-color:color-mix(in srgb,var(--cat-hotel) 40%,transparent)}
 .based.nohotel{background:color-mix(in srgb,var(--danger) 14%,transparent);color:var(--danger)}
@@ -625,11 +628,12 @@ function toggleCollapseDay(day){ const t=trip(); if(!t)return; const c=collapsed
   updateCollapseAllLabel(t); }
 function toggleCollapseAll(){ const t=trip(); if(!t)return; const dl=daysList(t); const c=collapsedMap(t); const allCol=dl.length&&dl.every(d=>c[d]);
   if(allCol) dl.forEach(d=>delete c[d]); else dl.forEach(d=>{c[d]=true;}); saveLocal(); render(); }
-function updateCollapseAllLabel(t){ const b=document.querySelector('[data-collapseall]'); if(!b)return; const dl=daysList(t); const c=collapsedMap(t); const allCol=dl.length&&dl.every(d=>c[d]); b.innerHTML=svg('chev')+' '+(allCol?'Expand all days':'Collapse all days'); }
+function updateCollapseAllLabel(t){ const b=document.querySelector('[data-collapseall]'); if(!b)return; const dl=daysList(t); const c=collapsedMap(t); const allCol=dl.length&&dl.every(d=>c[d]); const lbl=allCol?'Expand all days':'Collapse all days'; b.title=lbl; b.innerHTML=svg('chev')+`<span class="tool-lbl">${lbl}</span>`; }
 // Per-day lock — freezes the whole day AND its activities against drag/reorder.
 // Saved on the trip (t.dayLocks) so it syncs to every device and collaborator, like day names.
 function dayLocked(t,day){ return !!(t&&t.dayLocks&&t.dayLocks[day]); }
 function toggleDayLock(day){ const t=trip(); if(!t)return; if(!t.dayLocks)t.dayLocks={}; if(t.dayLocks[day])delete t.dayLocks[day]; else t.dayLocks[day]=true; save(); render(); }
+function lockAllDays(lock){ const t=trip(); if(!t)return; if(!t.dayLocks)t.dayLocks={}; daysList(t).forEach(d=>{ if(lock)t.dayLocks[d]=true; else delete t.dayLocks[d]; }); save(); render(); }
 
 /* ===== Live sync — open, whole-trip collaboration over shared bon-echo Firebase =====
    Anyone with the GitHub Pages link sees & edits the same trips in real time.
@@ -765,19 +769,16 @@ function render(){
 function syncSticky(){
   const tb=document.querySelector('.topbar');
   const h=tb?Math.round(tb.getBoundingClientRect().height):60;
-  const lb=document.querySelector('.legbar');
-  const lh=lb?Math.round(lb.getBoundingClientRect().height):0;
+  const pb=document.querySelector('.planbar');
+  const lh=pb?Math.round(pb.getBoundingClientRect().height):0;
   const rs=document.documentElement.style;
   rs.setProperty('--hdrH',h+'px');
   rs.setProperty('--stickH',(h+lh)+'px');
-  // Day-jump landing must clear whatever else is pinned above the days:
-  // the Day-1…N strip on phone/tablet, or the frozen Collapse-all bar on desktop.
-  const wide=innerWidth>=1080;
+  // The destinations+tools row is one sticky bar; a day-jump only needs to also
+  // clear the Day-1…N strip pinned below it on phone/tablet (<1080px).
   const strip=document.querySelector('.summary-strip');
-  const stripH=(!wide&&strip)?Math.round(strip.getBoundingClientRect().height):0;
-  const pt=document.querySelector('.plantools');
-  const ptH=(wide&&pt)?Math.round(pt.getBoundingClientRect().height):0;
-  rs.setProperty('--jumpH',(h+lh+stripH+ptH)+'px');
+  const stripH=(innerWidth<1080&&strip)?Math.round(strip.getBoundingClientRect().height):0;
+  rs.setProperty('--jumpH',(h+lh+stripH)+'px');
 }
 addEventListener('resize',()=>{ clearTimeout(window.__syncT); window.__syncT=setTimeout(syncSticky,120); });
 function navHTML(){
@@ -837,9 +838,10 @@ function itemsFor(t,day){ return t.items.filter(i=>i.day===day).sort((a,b)=>(a.o
 
 function viewPlan(t){
   const dl=daysList(t);
+  const cmap=collapsedMap(t);
   let h=`<div class="planwrap"><div class="planmain">`;
-  // legs bar
-  h+=`<div class="legbar">`;
+  // destinations bar + day-level tools share one sticky row
+  h+=`<div class="planbar"><div class="legbar">`;
   const daySet=new Set(dl);
   t.legs.forEach((l,k)=>{
     const jd = (l.start&&daySet.has(l.start)) ? l.start : (dl.find(d=>legIndex(t,d)===k) || l.start || '');
@@ -847,7 +849,16 @@ function viewPlan(t){
       <div class="p">${svg('pin')} ${esc(l.place)}</div>
       <div class="d">${l.start?fmtD(l.start,{month:'short',day:'numeric'})+' – '+fmtD(l.end,{month:'short',day:'numeric'}):'no dates'}</div>
       <button class="legedit" data-editleg="${l.id}" title="Edit destination" aria-label="Edit destination">${svg('edit')}</button></div>`; });
-  h+=`<button class="legchip" data-act="add-leg" style="display:grid;place-items:center;min-width:52px;color:var(--ink-3)">${svg('plus')}</button></div>`;
+  h+=`<button class="legchip" data-act="add-leg" style="display:grid;place-items:center;min-width:52px;color:var(--ink-3)">${svg('plus')}</button></div>`; // end legbar
+  if(dl.length){
+    const allCol=dl.every(d=>cmap[d]);
+    h+=`<div class="plantools">
+      <button class="iconbtn tool" data-lockall title="Lock all days" aria-label="Lock all days">${svg('lock')}</button>
+      <button class="iconbtn tool" data-unlockall title="Unlock all days" aria-label="Unlock all days">${svg('unlock')}</button>
+      <button class="btn sm ghost" data-collapseall title="${allCol?'Expand all days':'Collapse all days'}">${svg('chev')}<span class="tool-lbl">${allCol?'Expand all days':'Collapse all days'}</span></button>
+    </div>`;
+  }
+  h+=`</div>`; // end planbar
 
   if(!dl.length){
     h+=`<div class="empty"><div class="big">${svg('cal')}</div><h3>Set your dates</h3>
@@ -858,10 +869,6 @@ function viewPlan(t){
   }
   // mobile/tablet day jump strip
   h+=planStrip(t,dl);
-  // collapse-all toolbar
-  const cmap=collapsedMap(t);
-  const allCol=dl.every(d=>cmap[d]);
-  h+=`<div class="plantools"><button class="btn sm ghost" data-collapseall>${svg('chev')} ${allCol?'Expand all days':'Collapse all days'}</button></div>`;
   // days
   const today=todayISO();
   h+=`<div class="days" id="dayswrap">`;
@@ -2226,6 +2233,8 @@ document.addEventListener('click',e=>{
   // day collapse
   if((el=find('data-collapseday'))){toggleCollapseDay(el.dataset.collapseday);return;}
   if(find('data-collapseall')){toggleCollapseAll();return;}
+  if(find('data-lockall')){lockAllDays(true);return;}
+  if(find('data-unlockall')){lockAllDays(false);return;}
   if((el=find('data-lockday'))){toggleDayLock(el.dataset.lockday);return;}
   // day jump + rename
   if((el=find('data-jump'))){const k=el.dataset.jump;const node=document.querySelector(k==='wish'?'.wishlist':`[data-dayblock="${k}"]`);if(node)node.scrollIntoView({block:'start',behavior:'smooth'});return;}
