@@ -210,6 +210,7 @@ button.legchip{cursor:pointer}
 .plantools .btn{color:var(--ink-2)}
 .plantools .tool{width:36px;height:36px}
 .plantools .tool svg{width:18px;height:18px}
+.plantools .tool.on{color:var(--primary);background:var(--primary-c)}
 /* Collapse/Expand label collapses to just the chevron on phones to save row space. */
 .tool-lbl{display:none}
 @media(min-width:760px){ .tool-lbl{display:inline} }
@@ -852,9 +853,9 @@ function viewPlan(t){
   h+=`<button class="legchip" data-act="add-leg" style="display:grid;place-items:center;min-width:52px;color:var(--ink-3)">${svg('plus')}</button></div>`; // end legbar
   if(dl.length){
     const allCol=dl.every(d=>cmap[d]);
+    const allLck=dl.every(d=>dayLocked(t,d));
     h+=`<div class="plantools">
-      <button class="iconbtn tool" data-lockall title="Lock all days" aria-label="Lock all days">${svg('lock')}</button>
-      <button class="iconbtn tool" data-unlockall title="Unlock all days" aria-label="Unlock all days">${svg('unlock')}</button>
+      <button class="iconbtn tool${allLck?' on':''}" data-locktoggle="${allLck?'0':'1'}" title="${allLck?'Unlock all days':'Lock all days'}" aria-label="${allLck?'Unlock all days':'Lock all days'}" aria-pressed="${allLck}">${svg(allLck?'lock':'unlock')}</button>
       <button class="btn sm ghost" data-collapseall title="${allCol?'Expand all days':'Collapse all days'}">${svg('chev')}<span class="tool-lbl">${allCol?'Expand all days':'Collapse all days'}</span></button>
     </div>`;
   }
@@ -2233,8 +2234,7 @@ document.addEventListener('click',e=>{
   // day collapse
   if((el=find('data-collapseday'))){toggleCollapseDay(el.dataset.collapseday);return;}
   if(find('data-collapseall')){toggleCollapseAll();return;}
-  if(find('data-lockall')){lockAllDays(true);return;}
-  if(find('data-unlockall')){lockAllDays(false);return;}
+  if(find('data-locktoggle')){lockAllDays(find('data-locktoggle').getAttribute('data-locktoggle')==='1');return;}
   if((el=find('data-lockday'))){toggleDayLock(el.dataset.lockday);return;}
   // day jump + rename
   if((el=find('data-jump'))){const k=el.dataset.jump;const node=document.querySelector(k==='wish'?'.wishlist':`[data-dayblock="${k}"]`);if(node)node.scrollIntoView({block:'start',behavior:'smooth'});return;}
