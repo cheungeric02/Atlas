@@ -357,6 +357,17 @@ button.legchip{cursor:pointer}
 .catopt.on{border-color:transparent;color:#fff}
 .sh-actions{display:flex;gap:10px;padding:14px 18px 20px;position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--line)}
 .sh-actions .btn{flex:1}
+.pn-now{font-size:14px;color:var(--ink-2);margin-bottom:12px}
+.pn-list{display:flex;flex-direction:column;gap:12px}
+.pn-entry{border:1px solid var(--line);border-radius:var(--r-m);padding:12px 14px;background:var(--sc-low)}
+.pn-entry.pn-cur{border-color:var(--primary);background:var(--primary-c)}
+.pn-top{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.pn-v{font-weight:700;font-size:13px;color:var(--primary)}
+.pn-badge{font-size:11px;font-weight:600;color:var(--on-primary-c);background:var(--primary);border-radius:999px;padding:1px 8px}
+.pn-date{margin-left:auto;font-size:12px;color:var(--ink-3)}
+.pn-title{font-weight:600;font-size:15px;color:var(--ink);margin-bottom:6px}
+.pn-notes{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
+.pn-notes li{font-size:13px;color:var(--ink-2);line-height:1.45}
 .link{color:var(--primary);font-weight:600;text-decoration:none}
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -529,6 +540,7 @@ const I = {
   globe:'<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 6h-2.5a15.6 15.6 0 0 0-1.2-3.3A8 8 0 0 1 18.9 8zM12 4c.8 1.1 1.4 2.5 1.8 4h-3.6c.4-1.5 1-2.9 1.8-4zM4.3 14a8 8 0 0 1 0-4h2.9a17.5 17.5 0 0 0 0 4zm.8 2h2.5c.3 1.2.7 2.3 1.2 3.3A8 8 0 0 1 5.1 16zm2.5-8H5.1a8 8 0 0 1 3.7-3.3C8.3 5.7 7.9 6.8 7.6 8zM12 20c-.8-1.1-1.4-2.5-1.8-4h3.6c-.4 1.5-1 2.9-1.8 4zm2.2-6H9.8a15.6 15.6 0 0 1 0-4h4.4a15.6 15.6 0 0 1 0 4zm.8 5.3c.5-1 .9-2.1 1.2-3.3h2.5a8 8 0 0 1-3.7 3.3zm2.8-5.3a17.5 17.5 0 0 0 0-4h2.9a8 8 0 0 1 0 4z"/>',
   check:'<path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
   sparkle:'<path d="M12 2.5 13.9 8 19.5 9.9 13.9 11.8 12 17.3 10.1 11.8 4.5 9.9 10.1 8zM19 14l.9 2.6L22.5 17.5l-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z"/>',
+  info:'<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v2h-2zm0 4h2v6h-2z"/>',
 };
 const svg=(n,cls='')=>`<svg viewBox="0 0 24 24" fill="currentColor" ${cls?`class="${cls}"`:''} aria-hidden="true">${I[n]||''}</svg>`;
 
@@ -601,6 +613,38 @@ const tzLabel=n=>'UTC'+(n>=0?'+':'')+n;
 
 /* ================= STATE ================= */
 const KEY='roam-v1';
+
+/* ---- Developer patch notes ----
+   APP_VERSION MUST equal the sw.js cache number ("atlas-v<N>") — bump BOTH together.
+   VER_KEY is namespaced with the app name because all of Eric's apps share one
+   github.io origin's localStorage; a generic key would collide across apps. */
+const APP_VERSION=6;
+const VER_KEY='atlas_lastSeenVer';
+const PATCH_NOTES=[
+  { v:6, date:'2026-09-22', title:'Patch Notes & What’s New', notes:[
+    'Added a Patch Notes list in Trip settings so you can see every update.',
+    'A one-time What’s New popup now sums up what changed after each update.' ]},
+  { v:5, date:'2026-09-06', title:'Plan view controls', notes:[
+    'Lock a single day — or all days at once — to prevent accidental drag-and-drop moves.',
+    'Destinations bar and day tools now share one tidy row with a single lock toggle.',
+    'Added a Shop tab for a souvenir / shopping wishlist.' ]},
+  { v:4, date:'2026-09-03', title:'Smarter planning & fresh look', notes:[
+    'Import a whole itinerary from any AI, plus an auto-suggested packing list.',
+    'Colours group by destination; currency and time zones auto-fill from your stops.',
+    'Sticky destinations bar, collapsible days, and a new compass logo.' ]},
+  { v:3, date:'2026-09-02', title:'Stability & speed', notes:[
+    'Fixed a rare blank-screen crash when a trip had empty sections.',
+    'The app now always loads the newest version on refresh.' ]},
+  { v:2, date:'2026-09-02', title:'Maps, weather & memories', notes:[
+    'Added an interactive map with pins and routes coloured by day.',
+    'Added per-day weather forecasts and photo memories.',
+    'Added travel-document storage for boarding passes and confirmations.' ]},
+  { v:1, date:'2026-09-02', title:'Atlas launches', notes:[
+    'Multi-destination, day-by-day planner with drag-and-drop, hotels and cost splitting.',
+    'Open real-time collaboration — everyone with the link plans together.',
+    'Installable offline app with comments, a currency converter, flight details and reminders.' ]}
+];
+
 let S={v:1,trips:{},order:[],active:null,ui:{view:'trips',prepTab:'packing'}};
 /* Firebase Realtime DB drops empty arrays/objects on write, so a trip saved with
    e.g. legs:[] comes back with legs === undefined. Re-hydrate every expected field
@@ -1856,7 +1900,8 @@ function tripModal(id){
     +`<div class="field row2">${field('Currency code',`<input id="t-cur" value="${esc(cur.code||'')}" placeholder="HKD" maxlength="4">`)}${field('C$1 = ? local',`<input id="t-rate" type="number" inputmode="decimal" value="${cur.perCad!==''&&cur.perCad!=null?cur.perCad:''}" placeholder="5.6">`,'e.g. HKD 5.6, JPY 110')}</div>`
     +field('Home city',`<input id="t-home" value="${esc(t.homeCity||'')}" placeholder="Toronto" autocomplete="off">`,'Sets your home clock — pick a city and the timezone fills in.')
     +`<div class="autonote" id="t-home-note"></div>`
-    +`<div class="field row2">${field('Destination UTC offset',`<input id="t-dtz" type="number" value="${t.destTZ!==''&&t.destTZ!=null?t.destTZ:''}" placeholder="8">`,'auto-fills from destination')}${field('Home UTC offset',`<input id="t-htz" type="number" value="${t.homeTZ!==''&&t.homeTZ!=null?t.homeTZ:''}" placeholder="-5">`,'auto-fills from home city')}</div>`,
+    +`<div class="field row2">${field('Destination UTC offset',`<input id="t-dtz" type="number" value="${t.destTZ!==''&&t.destTZ!=null?t.destTZ:''}" placeholder="8">`,'auto-fills from destination')}${field('Home UTC offset',`<input id="t-htz" type="number" value="${t.homeTZ!==''&&t.homeTZ!=null?t.homeTZ:''}" placeholder="-5">`,'auto-fills from home city')}</div>`
+    +`<button type="button" class="btn ghost block" data-act="patch-notes" style="margin-top:6px">${svg('info')} Patch Notes · v${APP_VERSION}</button>`,
     `${id?`<button class="btn ghost" data-scrim-keep data-newtrip-cancel style="display:none"></button>`:''}<button class="btn block" data-savetrip="${id||''}">${id?'Save':'Create trip'}</button>`);
   attachTripForm(id);
 }
@@ -2170,6 +2215,40 @@ function souvModal(){ sheet('Add souvenir',
   field('Item',`<input id="sv-text" placeholder="Matcha Kit Kats">`)+
   field('Note (optional)',`<input id="sv-note" placeholder="For Mom · Don Quijote · ¥800">`),
   `<button class="btn block" data-savesouv>Add</button>`); }
+
+/* ---- Patch notes / What's New (one shared entry renderer) ---- */
+function patchEntryHTML(p,isCurrent){
+  return `<div class="pn-entry${isCurrent?' pn-cur':''}">
+    <div class="pn-top"><span class="pn-v">v${esc(String(p.v))}</span>${isCurrent?'<span class="pn-badge">Current</span>':''}<span class="pn-date">${esc(p.date)}</span></div>
+    <div class="pn-title">${esc(p.title)}</div>
+    <ul class="pn-notes">${p.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>
+  </div>`;
+}
+function patchNotesModal(){
+  const body=`<div class="pn-now">You’re on <b>Atlas v${esc(String(APP_VERSION))}</b></div>
+    <div class="pn-list">${PATCH_NOTES.map(p=>patchEntryHTML(p,p.v===APP_VERSION)).join('')}</div>`;
+  sheet('Patch Notes',body,`<button class="btn block" data-close>Done</button>`);
+}
+function whatsNewModal(entries){
+  const body=`<div class="pn-list">${entries.map(p=>patchEntryHTML(p,p.v===APP_VERSION)).join('')}</div>`;
+  sheet('What’s New',body,`<button class="btn block" data-close>Got it</button>`);
+}
+// Run once at boot, after the normal load/render. UI + localStorage only — never touches cloud data.
+function maybeWhatsNew(){
+  let hasPrior=false, lastSeen=null;
+  try{ hasPrior=!!localStorage.getItem(KEY); }catch(e){}
+  try{ const r=localStorage.getItem(VER_KEY); if(r!=null&&r!==''){ const n=parseInt(r,10); if(!isNaN(n)) lastSeen=n; } }catch(e){}
+  const writeSeen=()=>{ try{ localStorage.setItem(VER_KEY,String(APP_VERSION)); }catch(e){} };
+  // Brand-new install (no prior saved data, no marker) → record silently, no popup.
+  if(!hasPrior && lastSeen==null){ writeSeen(); return; }
+  // Already up to date (or ahead) → nothing to show.
+  if(lastSeen!=null && lastSeen>=APP_VERSION){ return; }
+  // Existing pre-feature user (marker missing) → latest entry only; otherwise the delta.
+  const entries = (lastSeen==null) ? PATCH_NOTES.slice(0,1) : PATCH_NOTES.filter(p=>p.v>lastSeen);
+  // Mark seen the moment we show it, so it appears exactly once even if closed immediately.
+  writeSeen();
+  if(entries.length) whatsNewModal(entries);
+}
 function expModal(id){
   const t=trip();const e=id?t.expenses.find(x=>x.id===id):{title:'',amount:'',category:'food',paidBy:t.party[0]?.id||'',splitAmong:t.party.map(p=>p.id),date:todayISO()};
   sheet(id?'Edit expense':'Add expense',
@@ -2303,6 +2382,7 @@ function act(a){
     case 'new-trip':tripModal(null);break;
     case 'ai-import':aiModal(S.ui.view==='trips'?null:S.active);break;
     case 'settings':tripModal(S.active);break;
+    case 'patch-notes':patchNotesModal();break;
     case 'theme':toggleTheme();break;
     case 'seed':seed();break;
     case 'add-leg':legModal(null);break;
@@ -2401,6 +2481,7 @@ load();
 if(S.active&&!S.trips[S.active])S.active=null;
 if(!S.active&&S.order.length)S.ui.view='trips';
 render();
+maybeWhatsNew();
 setInterval(()=>{const c=document.querySelector('.clock');if(c&&trip())c.outerHTML=clockHTML(trip());},30000);
 </script>
 <script type="module">
