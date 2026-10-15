@@ -368,6 +368,13 @@ button.legchip{cursor:pointer}
 .pn-title{font-weight:600;font-size:15px;color:var(--ink);margin-bottom:6px}
 .pn-notes{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:3px}
 .pn-notes li{font-size:13px;color:var(--ink-2);line-height:1.45}
+.pn-foot{display:flex;justify-content:center;margin-top:28px}
+.pn-sec{margin-top:6px;border:1px solid var(--line);border-radius:var(--r-m);background:var(--sc-low)}
+.pn-sec summary{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;font-weight:600;font-size:14px;color:var(--ink);list-style:none}
+.pn-sec summary::-webkit-details-marker{display:none}
+.pn-sec summary svg{width:18px;height:18px;color:var(--primary)}
+.pn-sec[open] summary{border-bottom:1px solid var(--line)}
+.pn-sec .pn-list{padding:12px}
 .link{color:var(--primary);font-weight:600;text-decoration:none}
 :focus-visible{outline:2px solid var(--primary);outline-offset:2px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -618,16 +625,18 @@ const KEY='roam-v1';
    APP_VERSION MUST equal the sw.js cache number ("atlas-v<N>") — bump BOTH together.
    VER_KEY is namespaced with the app name because all of Eric's apps share one
    github.io origin's localStorage; a generic key would collide across apps. */
-const APP_VERSION=6;
+const APP_VERSION=7;
 const VER_KEY='atlas_lastSeenVer';
 const PATCH_NOTES=[
-  { v:6, date:'2026-09-22', title:'Patch Notes & What’s New', notes:[
-    'Added a Patch Notes list in Trip settings so you can see every update.',
-    'A one-time What’s New popup now sums up what changed after each update.' ]},
-  { v:5, date:'2026-09-06', title:'Plan view controls', notes:[
-    'Lock a single day — or all days at once — to prevent accidental drag-and-drop moves.',
-    'Destinations bar and day tools now share one tidy row with a single lock toggle.',
-    'Added a Shop tab for a souvenir / shopping wishlist.' ]},
+  { v:7, date:'2026-10-15', title:'Patch Notes fixes', notes:[
+    'Patch Notes now opens from the Trips screen, and reading it in Trip settings no longer discards unsaved changes.',
+    'The What’s New popup no longer holds back live updates from your group.' ]},
+  { v:6, date:'2026-09-22', title:'Shop, day locks & Patch Notes', notes:[
+    'Added a Shop tab for a souvenir / shopping wishlist.',
+    'Lock a single day — or all days at once — to prevent accidental drag-and-drop moves; destinations and day tools share one row.',
+    'Added Patch Notes and a one-time What’s New popup after each update.' ]},
+  { v:5, date:'2026-09-04', title:'Sharper logo', notes:[
+    'The compass logo now has deeper shading so it reads clearly at small sizes.' ]},
   { v:4, date:'2026-09-03', title:'Smarter planning & fresh look', notes:[
     'Import a whole itinerary from any AI, plus an auto-suggested packing list.',
     'Colours group by destination; currency and time zones auto-fill from your stops.',
@@ -689,7 +698,7 @@ const FB_PATH='atlas/main';
 let fbLib=null, fbDB=null, atlasRef=null, firebaseReady=false, applyingRemote=false, pendingRemote=false, syncState='off';
 function setSync(s){ syncState=s; const el=document.getElementById('syncPill'); if(el){ el.className='syncpill '+s; el.textContent = s==='on'?'Live':s==='err'?'Offline':'Local'; } }
 function pushRemote(){ if(firebaseReady&&!applyingRemote&&atlasRef&&fbLib){ try{ fbLib.set(atlasRef,{v:S.v,trips:S.trips,order:S.order}); }catch(e){} } }
-function syncBusy(){ const m=document.getElementById('modal-root'); if(m&&m.innerHTML.trim()) return true; const a=document.activeElement; return !!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); }
+function syncBusy(){ const m=document.getElementById('modal-root'); if(m&&m.innerHTML.trim()&&!m.querySelector('[data-passive]')) return true; const a=document.activeElement; return !!(a&&/^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName)); }
 window.__atlasFB=function(lib){ fbLib=lib; try{
     const app=lib.initializeApp(FB_CONFIG); fbDB=lib.getDatabase(app); atlasRef=lib.ref(fbDB,FB_PATH);
     lib.onValue(atlasRef, snap=>{
@@ -849,7 +858,7 @@ function viewTrips(){
       <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap">
         <button class="btn" data-act="new-trip">${svg('plus')} New trip</button>
         <button class="btn ghost" data-act="ai-import">${svg('sparkle')} From AI</button>
-        <button class="btn ghost" data-act="seed">Load Hong Kong sample</button></div></div>`;
+        <button class="btn ghost" data-act="seed">Load Hong Kong sample</button></div></div>${patchFootHTML()}`;
   }
   let h=`<div class="section-title"><h2>Your trips</h2><div class="spacer"></div>
      <button class="btn sm ghost" data-act="ai-import">${svg('sparkle')} From AI</button>
@@ -872,9 +881,10 @@ function viewTrips(){
         <button class="iconbtn" data-deltrip="${id}" title="Delete">${svg('trash')}</button>
       </div></div>`;
   }
-  h+=`</div>`;
+  h+=`</div>${patchFootHTML()}`;
   return h;
 }
+const patchFootHTML=()=>`<div class="pn-foot"><button class="btn sm ghost" data-act="patch-notes">${svg('info')} Patch Notes · v${APP_VERSION}</button></div>`;
 
 /* ================= VIEW: PLAN ================= */
 function basedHotel(t,day){ return t.hotels.find(h=>h.checkIn&&h.checkOut&&day>=h.checkIn&&day<h.checkOut); }
@@ -1901,7 +1911,7 @@ function tripModal(id){
     +field('Home city',`<input id="t-home" value="${esc(t.homeCity||'')}" placeholder="Toronto" autocomplete="off">`,'Sets your home clock — pick a city and the timezone fills in.')
     +`<div class="autonote" id="t-home-note"></div>`
     +`<div class="field row2">${field('Destination UTC offset',`<input id="t-dtz" type="number" value="${t.destTZ!==''&&t.destTZ!=null?t.destTZ:''}" placeholder="8">`,'auto-fills from destination')}${field('Home UTC offset',`<input id="t-htz" type="number" value="${t.homeTZ!==''&&t.homeTZ!=null?t.homeTZ:''}" placeholder="-5">`,'auto-fills from home city')}</div>`
-    +`<button type="button" class="btn ghost block" data-act="patch-notes" style="margin-top:6px">${svg('info')} Patch Notes · v${APP_VERSION}</button>`,
+    +`<details class="pn-sec"><summary>${svg('info')} Patch Notes · v${APP_VERSION}</summary>${patchListHTML(PATCH_NOTES)}</details>`,
     `${id?`<button class="btn ghost" data-scrim-keep data-newtrip-cancel style="display:none"></button>`:''}<button class="btn block" data-savetrip="${id||''}">${id?'Save':'Create trip'}</button>`);
   attachTripForm(id);
 }
@@ -2219,25 +2229,32 @@ function souvModal(){ sheet('Add souvenir',
 /* ---- Patch notes / What's New (one shared entry renderer) ---- */
 function patchEntryHTML(p,isCurrent){
   return `<div class="pn-entry${isCurrent?' pn-cur':''}">
-    <div class="pn-top"><span class="pn-v">v${esc(String(p.v))}</span>${isCurrent?'<span class="pn-badge">Current</span>':''}<span class="pn-date">${esc(p.date)}</span></div>
+    <div class="pn-top"><span class="pn-v">v${p.v}</span>${isCurrent?'<span class="pn-badge">Current</span>':''}<span class="pn-date">${esc(p.date)}</span></div>
     <div class="pn-title">${esc(p.title)}</div>
     <ul class="pn-notes">${p.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>
   </div>`;
 }
+function patchListHTML(entries){
+  return `<div class="pn-list">${entries.map(p=>patchEntryHTML(p,p.v===APP_VERSION)).join('')}</div>`;
+}
+/* Read-only info sheet: marked passive so live sync keeps rendering underneath (syncBusy
+   ignores it) and Escape closes it; focus lands on its button for keyboard/screen readers. */
+function infoSheet(title,body,btnLabel){
+  sheet(title,body,`<button class="btn block" data-close>${btnLabel}</button>`);
+  mroot().querySelector('.scrim').setAttribute('data-passive','');
+  const b=mroot().querySelector('.sh-actions .btn'); if(b) b.focus({preventScroll:true});
+}
 function patchNotesModal(){
-  const body=`<div class="pn-now">You’re on <b>Atlas v${esc(String(APP_VERSION))}</b></div>
-    <div class="pn-list">${PATCH_NOTES.map(p=>patchEntryHTML(p,p.v===APP_VERSION)).join('')}</div>`;
-  sheet('Patch Notes',body,`<button class="btn block" data-close>Done</button>`);
+  infoSheet('Patch Notes',`<div class="pn-now">You’re on <b>Atlas v${APP_VERSION}</b></div>${patchListHTML(PATCH_NOTES)}`,'Done');
 }
 function whatsNewModal(entries){
-  const body=`<div class="pn-list">${entries.map(p=>patchEntryHTML(p,p.v===APP_VERSION)).join('')}</div>`;
-  sheet('What’s New',body,`<button class="btn block" data-close>Got it</button>`);
+  infoSheet('What’s New',patchListHTML(entries),'Got it');
 }
 // Run once at boot, after the normal load/render. UI + localStorage only — never touches cloud data.
 function maybeWhatsNew(){
   let hasPrior=false, lastSeen=null;
   try{ hasPrior=!!localStorage.getItem(KEY); }catch(e){}
-  try{ const r=localStorage.getItem(VER_KEY); if(r!=null&&r!==''){ const n=parseInt(r,10); if(!isNaN(n)) lastSeen=n; } }catch(e){}
+  try{ const n=parseInt(localStorage.getItem(VER_KEY),10); if(!isNaN(n)) lastSeen=n; }catch(e){}
   const writeSeen=()=>{ try{ localStorage.setItem(VER_KEY,String(APP_VERSION)); }catch(e){} };
   // Brand-new install (no prior saved data, no marker) → record silently, no popup.
   if(!hasPrior && lastSeen==null){ writeSeen(); return; }
@@ -2285,6 +2302,8 @@ let scrimDown=false;
 document.addEventListener('pointerdown',e=>{
   scrimDown = !!(e.target.classList && e.target.classList.contains('scrim') && e.target.hasAttribute('data-scrim'));
 },true);
+// Escape closes read-only info sheets (never edit forms, so a stray key can't discard input).
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&mroot().querySelector('[data-passive]')) closeModal(); });
 document.addEventListener('click',e=>{
   const T=e.target;
   const find=a=>T.closest(`[${a}]`);
