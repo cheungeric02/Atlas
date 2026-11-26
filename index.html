@@ -17,7 +17,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap">
 <style>
-/* Atlas 1.5 — flat, quiet palette. Token names kept from 1.0–1.4 so every view restyles through them. */
+/* Atlas 2.0 — flat, quiet palette. Token names kept from 1.0–1.4 so every view restyles through them. */
 :root{
   --bg:#ffffff; --surface:#ffffff; --sc:#eef0f2; --sc-hi:#e4e7ea; --sc-low:#f5f6f7;
   --ink:#1b1d20; --ink-2:#50555c; --ink-3:#7c8189; --outline:#d5d9de; --line:#e8eaed;
@@ -595,7 +595,7 @@ const I = {
   check:'<path d="M20 6 9 17l-5-5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>',
   sparkle:'<path d="M12 2.5 13.9 8 19.5 9.9 13.9 11.8 12 17.3 10.1 11.8 4.5 9.9 10.1 8zM19 14l.9 2.6L22.5 17.5l-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9z"/>',
   info:'<path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1 5h2v2h-2zm0 4h2v6h-2z"/>',
-  // category tiles (1.5) — stand-ins until place photos arrive
+  // category tiles (2.0) — stand-ins until place photos arrive
   food:'<path d="M6 2h1.5v6H9V2h1.5v6H12V2h1.5v7a3 3 0 0 1-2.5 3v10H9V12a3 3 0 0 1-3-3zm11 0c2.2 1 3.5 4.2 3.5 8.5H18V22h-2V2z"/>',
   tree:'<path d="M12 2 5 12h4l-3.5 5H11v5h2v-5h5.5L15 12h4z"/>',
   moon:'<path d="M14.5 2.5A9.5 9.5 0 1 0 21.5 15 7.5 7.5 0 0 1 14.5 2.5z"/>',
@@ -627,7 +627,7 @@ function locColor(t,day,i){
   return DAY_COLORS[(i||0)%DAY_COLORS.length];
 }
 const legColor=k=>DAY_COLORS[k%DAY_COLORS.length];
-// cover tint for a trip (1.5): its first destination's colour, else a stable per-trip colour
+// cover tint for a trip (2.0): its first destination's colour, else a stable per-trip colour
 const tripColor=(t,i)=>(t&&t.legs&&t.legs.length)?legColor(0):DAY_COLORS[(i||0)%DAY_COLORS.length];
 const dayNameOf=(t,d)=>((t.dayNames||{})[d]||'');
 
@@ -692,10 +692,10 @@ const KEY='roam-v1';
    What's New only pops up when the DISPLAY version changes; lastSeen still stores the build.
    VER_KEY is namespaced with the app name because all of Eric's apps share one
    github.io origin's localStorage; a generic key would collide across apps. */
-const APP_VERSION=10;
+const APP_VERSION=11;
 const VER_KEY='atlas_lastSeenVer';
 const PATCH_NOTES=[
-  { v:10, ver:'1.5', date:'2026-11-26', title:'Fresh new look', notes:[
+  { v:11, ver:'2.0', date:'2026-11-26', title:'Atlas 2.0 — a fresh new look', notes:[
     'A cleaner, flatter design with a new typeface and calmer colours, in light and dark.',
     'Each day is now a timeline: numbered stops, free time between them, and a Directions link from one stop to the next.',
     'Tap a stop to edit it; tap its picture tile to open it in Google Maps; drag the number to reorder.',
