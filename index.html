@@ -708,10 +708,10 @@ const KEY='roam-v1';
    What's New only pops up when the DISPLAY version changes; lastSeen still stores the build.
    VER_KEY is namespaced with the app name because all of Eric's apps share one
    github.io origin's localStorage; a generic key would collide across apps. */
-const APP_VERSION=12;
+const APP_VERSION=13;
 const VER_KEY='atlas_lastSeenVer';
 const PATCH_NOTES=[
-  { v:12, ver:'2.1', date:'2026-11-26', title:'Place photos & travel times', notes:[
+  { v:13, ver:'2.1', date:'2026-11-26', title:'Place photos & travel times', notes:[
     'Stops that have a Wikipedia article now show its photo on the card, plus a short description when you haven’t written notes.',
     'Open a stop to read more from Wikipedia. If it found the wrong place, tick “Wrong place” to hide it.',
     'Between stops you’ll see a rough travel time (walking for short hops), next to the Directions link. Turn it off with the walking button above your days.',
@@ -1328,8 +1328,11 @@ async function plGeo(q,c){
   const g={lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0]};
   return (!c||kmBetween(c,g)<80)?g:null;
 }
+// Track the trip by id, not object: a Firebase sync swaps in fresh trip objects mid-run.
+let _plAgain=false;
 async function loadPlaces(t){
-  if(_plRun||!t) return; _plRun=true;
+  if(!t) return; if(_plRun){ _plAgain=true; return; } _plRun=true; _plAgain=false;
+  const tid=S.active;
   try{
     const c=plGet(), now=Date.now(), today=todayISO();
     const stale=e=>!e||(e.err&&now-e.ts>36e5)||(e.none&&now-e.ts>14*864e5);
@@ -1338,7 +1341,8 @@ async function loadPlaces(t){
       .filter(it=>{ const k=plKey(t,it); if(seen.has(k)) return false; seen.add(k); return stale(c[k]); })
       .sort((a,b)=>{ const r=i=>!i.day?2:(i.day>=today?0:1); return r(a)-r(b)||String(a.day).localeCompare(String(b.day))||(a.order??0)-(b.order??0); });
     for(const it of todo){
-      if(trip()!==t||S.ui.view!=='plan') break;          // switched trip / left Plan → resume next visit
+      if(S.active!==tid||S.ui.view!=='plan'||!trip()) break;   // switched trip / left Plan → resume next visit
+      t=trip();                                            // re-resolve after any sync
       const k=plKey(t,it), city=plCity(t,it);
       const center=city?await wxGeocode(city):null;
       let rec={ts:Date.now()};
@@ -1352,7 +1356,8 @@ async function loadPlaces(t){
       c[k]=rec; plSave(); fillPlaces(t);
       await plSleep(150);
     }
-  } finally { _plRun=false; }
+  } finally { _plRun=false;
+    if(_plAgain){ _plAgain=false; setTimeout(()=>{ if(S.ui.view==='plan'&&trip()) loadPlaces(trip()); },300); } }
 }
 // Rough door-to-door guess from straight-line distance (+30% for real streets).
 function travelLabel(km){
