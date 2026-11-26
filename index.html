@@ -299,6 +299,21 @@ button.legchip{cursor:pointer}
 .wikibox img{width:72px;height:72px;object-fit:cover;border-radius:10px;flex:none;background:var(--sc-hi)}
 .wikibox .wt{font-size:12px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
 .wikibox p{font-size:13px;color:var(--ink-2);line-height:1.45;margin:4px 0 6px}
+.wikiacts{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.wpnone{font-size:13px;color:var(--ink-3);background:var(--sc);border-radius:var(--r-m);padding:12px}
+.wikipick{margin-top:10px;display:grid;gap:8px}
+.wikipick[hidden]{display:none}
+.wikipick .wpq{display:flex;gap:8px}
+.wikipick .wpq input{flex:1;min-width:0}
+.wplist{display:grid;gap:6px;max-height:320px;overflow:auto}
+.wplist .wpmsg{font-size:13px;color:var(--ink-3);padding:6px 2px}
+.wpopt{display:flex;gap:10px;align-items:center;text-align:left;padding:8px;border-radius:10px;background:var(--sc);border:2px solid transparent;width:100%;font:inherit;color:inherit;cursor:pointer;min-width:0}
+.wpopt:hover{background:var(--sc-hi)}
+.wpopt.on{border-color:var(--primary)}
+.wpopt img,.wpopt .noimg{width:52px;height:52px;border-radius:8px;object-fit:cover;flex:none;background:var(--sc-hi)}
+.wpopt .wpt{min-width:0}
+.wpopt b{display:block;font-size:13px;font-weight:700}
+.wpopt .wpt span{font-size:12px;color:var(--ink-3);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .wikibox a{font-size:12.5px;font-weight:600;color:var(--primary)}
 .chkrow{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink-2);margin-top:8px;cursor:pointer}
 .item .thumb svg{width:24px;height:24px}
@@ -528,6 +543,7 @@ button.legchip{cursor:pointer}
 .wxchip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:999px;
   background:color-mix(in srgb,var(--dc,var(--primary)) 13%,transparent);color:var(--ink-2);border:1px solid transparent;
   cursor:pointer;line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;transition:background .15s}
+.wxchip[hidden]{display:none}
 .wxchip:hover{background:color-mix(in srgb,var(--dc,var(--primary)) 22%,transparent)}
 .wxchip .em{font-size:13px;filter:saturate(1.1)}
 .wxchip .hi{color:var(--ink)}
@@ -708,9 +724,14 @@ const KEY='roam-v1';
    What's New only pops up when the DISPLAY version changes; lastSeen still stores the build.
    VER_KEY is namespaced with the app name because all of Eric's apps share one
    github.io origin's localStorage; a generic key would collide across apps. */
-const APP_VERSION=13;
+const APP_VERSION=14;
 const VER_KEY='atlas_lastSeenVer';
 const PATCH_NOTES=[
+  { v:14, ver:'2.2', date:'2026-11-26', title:'Photos everywhere', notes:[
+    'Photos for today and upcoming days are saved on your device, so they still show on a plane or without data.',
+    'Place photos are now shared with everyone on the trip — once one person’s device finds them, they appear instantly for the rest of the group.',
+    'Open a stop and tap “Choose a different photo” to pick another Wikipedia article, or search for the right one.',
+    'Fixed an empty pill showing in the day header when there’s no weather forecast yet.' ]},
   { v:13, ver:'2.1', date:'2026-11-26', title:'Place photos & travel times', notes:[
     'Stops that have a Wikipedia article now show its photo on the card, plus a short description when you haven’t written notes.',
     'Open a stop to read more from Wikipedia. If it found the wrong place, tick “Wrong place” to hide it.',
@@ -1187,7 +1208,7 @@ function afterPlan(t){
   const td=document.querySelector('.day.today');
   if(td && !S.ui._jumped){ td.scrollIntoView({block:'center',behavior:'smooth'}); S.ui._jumped=true; }
   loadWeather(t);
-  fillPlaces(t); loadPlaces(t);
+  fillPlaces(t); plSubscribe(t); plWarm(t); loadPlaces(t);
 }
 
 /* ================= WEATHER (Open-Meteo, no key) =================
@@ -1272,9 +1293,11 @@ async function loadWeather(t){
    name — so "Easy dinner nearby" stays an icon instead of matching a random page.
    A hit gives the card a photo, a two-sentence blurb and coordinates; stops without
    an article are geocoded with Photon so travel times can still be estimated.
-   Everything is cached in THIS browser only (localStorage atlas_places) — none of it
-   is written to the shared trip. The only shared field is it.noPhoto, set when
-   someone ticks "wrong place" in the stop's edit sheet. */
+   Results are cached in this browser (localStorage atlas_places) AND shared with the
+   group under a SEPARATE Firebase path atlas/places/<tripId>/<itemId> (never the
+   atlas/main trip blob), so each stop is looked up once for everybody. Shared trip
+   fields: it.noPhoto ("wrong place — hide") and it.wiki (a hand-picked article title).
+   The service worker keeps upcoming photos in its atlas-img cache for offline use. */
 const PL_KEY='atlas_places';
 let _pl=null, _plSaveT=0, _plRun=false;
 function plGet(){ if(!_pl){ try{ _pl=JSON.parse(localStorage.getItem(PL_KEY)||'{}')||{}; }catch(e){ _pl={}; } } return _pl; }
@@ -1291,18 +1314,26 @@ const PL_GENERIC=new Set(('waterfront harbour harbor beach park temple temples s
   +'teahouse dessert bakery cruise boat train rail bus metro mtr subway terminal port lookout hike trail').split(' '));
 const plWords=s=>(s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').split(/[^a-z0-9]+/).filter(w=>w.length>=3&&!PL_STOP.has(w)).map(w=>w.length>4&&/[^s]s$/.test(w)?w.slice(0,-1):w);   // temples→temple
 const plCity=(t,it)=>{ const l=it.day?legFor(t,it.day):null; return ((l&&l.place)||t.dest||(t.legs[0]&&t.legs[0].place)||'').trim(); };
-const plKey=(t,it)=>((it.title||'')+'|'+(it.address||'')+'|'+plCity(t,it)).toLowerCase().trim();
+const plKey=(t,it)=>((it.title||'')+'|'+(it.address||'')+'|'+plCity(t,it)+(it.wiki?'|w:'+it.wiki:'')).toLowerCase().trim();
 const plEntry=(t,it)=>plGet()[plKey(t,it)]||null;
 const plSleep=ms=>new Promise(r=>setTimeout(r,ms));
 const okImg=u=>/^https:\/\/(upload|thumb)\.wikimedia\.org\//.test(u||'')?u:'';
 function kmBetween(a,b){ const R=6371,r=x=>x*Math.PI/180, dLa=r(b.lat-a.lat), dLo=r(b.lng-a.lng);
   const h=Math.sin(dLa/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+const PL_WAPI='https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1'
+  +'&prop=pageimages|extracts|coordinates|info&inprop=url&exintro=1&explaintext=1&exsentences=2&exlimit=20&piprop=thumbnail&pithumbsize=320';
+async function plPages(qs){
+  const r=await fetch(PL_WAPI+qs); if(!r.ok) throw new Error('wiki '+r.status); const d=await r.json();
+  return Object.values((d.query&&d.query.pages)||{}).filter(p=>!('missing' in p)&&!('invalid' in p)).sort((a,b)=>(a.index||0)-(b.index||0));
+}
+const plNear=c=>c?' nearcoord:75km,'+c.lat.toFixed(4)+','+c.lng.toFixed(4):'';
+function plRec(p,c){   // coordinates only kept when they sit near the city we searched around
+  const co=p.coordinates&&p.coordinates[0], keep=!!(c&&co&&kmBetween(c,{lat:co.lat,lng:co.lon})<=80);
+  return {title:p.title, url:p.fullurl||'https://en.wikipedia.org/wiki/'+encodeURIComponent(p.title.replace(/ /g,'_')),
+    img:okImg(p.thumbnail&&p.thumbnail.source), ext:(p.extract||'').trim().slice(0,420), lat:keep?co.lat:null, lng:keep?co.lon:null};
+}
 async function plWiki(q,c,city){
-  const u='https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&generator=search&gsrlimit=5'
-    +'&gsrsearch='+encodeURIComponent(q+(c?' nearcoord:75km,'+c.lat.toFixed(4)+','+c.lng.toFixed(4):''))
-    +'&prop=pageimages|extracts|coordinates|info&inprop=url&exintro=1&explaintext=1&exsentences=2&piprop=thumbnail&pithumbsize=320';
-  const r=await fetch(u); if(!r.ok) throw new Error('wiki '+r.status); const d=await r.json();
-  const pages=Object.values((d.query&&d.query.pages)||{}).sort((a,b)=>(a.index||0)-(b.index||0));
+  const pages=await plPages('&generator=search&gsrlimit=5&gsrsearch='+encodeURIComponent(q+plNear(c)));
   const want=new Set(plWords(q)); if(!want.size) return null;
   const cw=new Set(plWords(city));
   let best=null, bs=0;
@@ -1314,12 +1345,55 @@ async function plWiki(q,c,city){
     const sc=have.reduce((n,w)=>n+(want.has(w)?1:-1),0);
     if(sc>bs){ best=p; bs=sc; }
   }
-  if(best){ const p=best, co=p.coordinates&&p.coordinates[0];
-    const keep=c&&co;
-    return {title:p.title, url:p.fullurl||'https://en.wikipedia.org/wiki/'+encodeURIComponent(p.title.replace(/ /g,'_')),
-      img:okImg(p.thumbnail&&p.thumbnail.source), ext:(p.extract||'').trim().slice(0,420), lat:keep?co.lat:null, lng:keep?co.lon:null};
+  return best?plRec(best,c):null;
+}
+async function plWikiTitle(title,c){ const p=(await plPages('&titles='+encodeURIComponent(title)))[0]; return p?plRec(p,c):null; }
+async function plWikiSearch(q,c){   // for the "choose a different photo" picker: no word matching, just results
+  let pages=c?await plPages('&generator=search&gsrlimit=8&gsrsearch='+encodeURIComponent(q+plNear(c))):[];
+  if(!pages.length) pages=await plPages('&generator=search&gsrlimit=8&gsrsearch='+encodeURIComponent(q));
+  return pages.map(p=>plRec(p,c));
+}
+/* Shared cache: atlas/places/<tripId>/<itemId> = {k: plKey at lookup time, ...result}.
+   Only ever writes ONE child per stop; never touches atlas/main. */
+const PL_FB='atlas/places/';
+let _plSubTrip=null, _plOff=null, _plFirst=null;
+function plSubscribe(t){
+  if(!t||!(firebaseReady&&fbLib&&fbDB)||_plSubTrip===t.id) return;
+  if(_plOff){ try{_plOff();}catch(e){} _plOff=null; }
+  _plSubTrip=t.id; let done; _plFirst=new Promise(r=>done=r);
+  try{
+    const r=fbLib.ref(fbDB,PL_FB+t.id), tid=t.id;
+    const cb=snap=>{ try{ plMergeRemote(tid,snap.val()||{}); }catch(e){} finally{ done(); } };
+    fbLib.onValue(r,cb,()=>done());
+    _plOff=()=>{ try{ fbLib.off(r,'value',cb); }catch(e){} };
+  }catch(e){ done(); }
+}
+function plMergeRemote(tid,map){
+  const t=S.trips[tid]; if(!t) return;
+  const c=plGet(), byId={}; t.items.forEach(i=>byId[i.id]=i); let ch=false;
+  for(const id in map){
+    const it=byId[id], rv=map[id]; if(!it||!rv||rv.err) continue;
+    const k=plKey(t,it); if(rv.k!==k) continue;              // stop was renamed since — ignore
+    const lo=c[k];
+    if(lo&&!lo.err){ if(lo.title&&!rv.title) continue; if((lo.ts||0)>=(rv.ts||0)&&!(rv.title&&!lo.title)) continue; }
+    const rec={}; for(const f in rv) if(f!=='k') rec[f]=rv[f];
+    c[k]=rec; ch=true;
   }
-  return null;
+  if(ch){ plSave(); const cur=trip(); if(cur&&cur.id===tid&&S.ui.view==='plan'){ fillPlaces(cur); plWarm(cur); } }
+}
+function plShare(t,it,rec){
+  if(!(firebaseReady&&fbLib&&fbDB)||!rec||rec.err) return;
+  const o={k:plKey(t,it), ts:rec.ts||Date.now()};
+  ['title','url','img','ext','lat','lng','none'].forEach(f=>{ if(rec[f]!=null&&rec[f]!=='') o[f]=rec[f]; });
+  try{ const p=fbLib.set(fbLib.ref(fbDB,PL_FB+t.id+'/'+it.id),o); if(p&&p.catch) p.catch(()=>{}); }catch(e){}
+}
+// Offline: ask the service worker to keep photos for today onward (+ wishlist).
+const _plWarm=new Set();
+function plWarm(t){
+  if(!t||!('serviceWorker' in navigator)||!navigator.serviceWorker.controller) return;
+  const today=todayISO(), c=plGet();
+  t.items.forEach(it=>{ if(it.noPhoto||(it.day&&it.day<today)) return;
+    const e=c[plKey(t,it)], u=e&&e.img; if(u&&!_plWarm.has(u)){ _plWarm.add(u); fetch(u,{mode:'no-cors'}).catch(()=>{}); } });
 }
 async function plGeo(q,c){
   const u='https://photon.komoot.io/api/?limit=1&q='+encodeURIComponent(q)+(c?'&lat='+c.lat+'&lon='+c.lng:'');
@@ -1334,10 +1408,11 @@ async function loadPlaces(t){
   if(!t) return; if(_plRun){ _plAgain=true; return; } _plRun=true; _plAgain=false;
   const tid=S.active;
   try{
+    if(_plFirst&&_plSubTrip===tid) await Promise.race([_plFirst,plSleep(3000)]);   // use the group's lookups first
     const c=plGet(), now=Date.now(), today=todayISO();
     const stale=e=>!e||(e.err&&now-e.ts>36e5)||(e.none&&now-e.ts>14*864e5);
     const seen=new Set();
-    const todo=t.items.filter(it=>it.title&&!(it.category==='transport'&&!it.address))
+    const todo=t.items.filter(it=>it.title&&(it.wiki||!(it.category==='transport'&&!it.address)))
       .filter(it=>{ const k=plKey(t,it); if(seen.has(k)) return false; seen.add(k); return stale(c[k]); })
       .sort((a,b)=>{ const r=i=>!i.day?2:(i.day>=today?0:1); return r(a)-r(b)||String(a.day).localeCompare(String(b.day))||(a.order??0)-(b.order??0); });
     for(const it of todo){
@@ -1347,16 +1422,16 @@ async function loadPlaces(t){
       const center=city?await wxGeocode(city):null;
       let rec={ts:Date.now()};
       try{
-        const w=it.category==='transport'?null:await plWiki(it.title,center,city);
+        const w=it.wiki?await plWikiTitle(it.wiki,center):it.category==='transport'?null:await plWiki(it.title,center,city);
         if(w) Object.assign(rec,w);
         if(rec.lat==null&&center){ await plSleep(900); const bare=city.replace(/\s*\([^)]*\)/g,'').trim();
           const g=await plGeo(it.address||(it.title+(bare?', '+bare:'')),center); if(g){ rec.lat=g.lat; rec.lng=g.lng; } }
         if(!rec.title&&rec.lat==null) rec.none=1;
       }catch(e){ rec={ts:Date.now(),err:1}; }
-      c[k]=rec; plSave(); fillPlaces(t);
+      c[k]=rec; plSave(); plShare(t,it,rec); fillPlaces(t);
       await plSleep(150);
     }
-  } finally { _plRun=false;
+  } finally { _plRun=false; try{ plWarm(trip()); }catch(e){}
     if(_plAgain){ _plAgain=false; setTimeout(()=>{ if(S.ui.view==='plan'&&trip()) loadPlaces(trip()); },300); } }
 }
 // Rough door-to-door guess from straight-line distance (+30% for real streets).
@@ -1951,12 +2026,36 @@ function itemModal(id,defaultDay){
     `${id?`<button class="btn ghost" data-delitem="${id}">${svg('trash')}</button>`:''}<button class="btn" data-saveitem="${id||''}">${id?'Save':'Add'}</button>`);
   attachCatWho();
 }
+function wikiBoxHTML(e){
+  return e&&e.title?`<div class="wikibox">${e.img?`<img src="${esc(e.img)}" alt="" loading="lazy">`:''}<div><div class="wt">From Wikipedia · ${esc(e.title)}</div>
+    ${e.ext?`<p>${esc(e.ext)}</p>`:''}<a href="${esc(e.url)}" target="_blank" rel="noopener">Read more on Wikipedia</a></div></div>`
+    :'<div class="wpnone">No Wikipedia match for this stop yet.</div>';
+}
 function wikiSection(t,it){
-  const e=plEntry(t,it); if(!(e&&e.title)&&!it.noPhoto) return '';
-  const box=e&&e.title?`<div class="wikibox">${e.img?`<img src="${esc(e.img)}" alt="" loading="lazy">`:''}<div><div class="wt">From Wikipedia · ${esc(e.title)}</div>
-    ${e.ext?`<p>${esc(e.ext)}</p>`:''}<a href="${esc(e.url)}" target="_blank" rel="noopener">Read more on Wikipedia</a></div></div>`:'';
-  return `<div class="field"><label>Place info</label>${box}
+  const e=plEntry(t,it);
+  return `<div class="field"><label>Place info</label><div id="wikibox">${wikiBoxHTML(e)}</div>
+    <div class="wikiacts"><button type="button" class="btn sm ghost" data-wikipick>${e&&e.title?'Choose a different photo':'Find a photo'}</button>
+      ${it.wiki?'<button type="button" class="btn sm ghost" data-wikiauto>Back to automatic</button>':''}</div>
+    <div class="wikipick" id="wikipick" data-item="${it.id}" hidden>
+      <div class="wpq"><input id="wp-q" value="${esc(it.title)}" placeholder="Search Wikipedia" aria-label="Search Wikipedia"><button type="button" class="btn sm" data-wpsearch>Search</button></div>
+      <div class="wplist" id="wplist" role="list"></div></div>
+    <input type="hidden" id="f-wiki" value="${esc(it.wiki||'')}">
     <label class="chkrow"><input type="checkbox" id="f-nophoto"${it.noPhoto?' checked':''}> Wrong place — hide the photo and blurb for this stop</label></div>`;
+}
+let _wpRes=[], _wpSel=null, _wpSeq=0;
+async function wikiSearchUI(){
+  const box=document.getElementById('wikipick'), list=document.getElementById('wplist'), q=(document.getElementById('wp-q')||{}).value||'';
+  if(!box||!list||!q.trim()) return;
+  const t=trip(), it=t&&t.items.find(x=>x.id===box.dataset.item); if(!it) return;
+  const seq=++_wpSeq; list.innerHTML='<div class="wpmsg">Searching Wikipedia…</div>';
+  const city=plCity(t,it); let c=null; try{ c=city?await wxGeocode(city):null; }catch(e){}
+  try{ _wpRes=await plWikiSearch(q.trim(),c); }catch(e){ _wpRes=null; }
+  if(seq!==_wpSeq||!document.getElementById('wplist')) return;
+  if(!_wpRes){ list.innerHTML='<div class="wpmsg">Couldn’t reach Wikipedia. Check your connection and try again.</div>'; _wpRes=[]; return; }
+  if(!_wpRes.length){ list.innerHTML='<div class="wpmsg">No articles found. Try a different name.</div>'; return; }
+  const cur=(document.getElementById('f-wiki')||{}).value||(plEntry(t,it)||{}).title||'';
+  list.innerHTML=_wpRes.map((r,n)=>`<button type="button" class="wpopt${r.title===cur?' on':''}" role="listitem" data-wpopt="${n}">
+    ${r.img?`<img src="${esc(r.img)}" alt="" loading="lazy">`:'<span class="noimg"></span>'}<span class="wpt"><b>${esc(r.title)}</b><span>${esc(r.ext||(r.img?'':'No photo in this article'))}</span></span></button>`).join('');
 }
 function commentsSection(it){
   return `<div class="field"><label>Comments${(it.comments&&it.comments.length)?' ('+it.comments.length+')':''}</label>
@@ -2015,7 +2114,11 @@ function saveItem(id){
     address:g('f-addr'),cost:g('f-cost')?Number(g('f-cost')):null,confirmation:g('f-conf'),who:readWho(),notes:g('f-notes')};
   if(id){const ex=t.items.find(x=>x.id===id);
     Object.assign(ex,data);
-    const np=document.getElementById('f-nophoto'); if(np){ if(np.checked) ex.noPhoto=true; else delete ex.noPhoto; }}
+    const np=document.getElementById('f-nophoto'); if(np){ if(np.checked) ex.noPhoto=true; else delete ex.noPhoto; }
+    const fw=document.getElementById('f-wiki');
+    if(fw){ const v=fw.value.trim(); if(v) ex.wiki=v; else delete ex.wiki;
+      if(v&&_wpSel&&_wpSel.title===v){ const rec=Object.assign({},_wpSel,{ts:Date.now()}); plGet()[plKey(t,ex)]=rec; plSave(); plShare(t,ex,rec); } }
+    _wpSel=null; }
   else{data.id=uid();data.order=(t.items.filter(i=>i.day===data.day).length);t.items.push(data);}
   save();closeModal();render();
 }
@@ -2431,6 +2534,7 @@ document.addEventListener('pointerdown',e=>{
 // Escape closes read-only info sheets (never edit forms, so a stray key can't discard input).
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&mroot().querySelector('[data-passive]')) closeModal(); });
 // Timeline cards are div[role=button]; let Enter/Space open them like a real button.
+document.addEventListener('keydown',e=>{ if(e.key==='Enter'&&e.target.id==='wp-q'){ e.preventDefault(); wikiSearchUI(); } });
 document.addEventListener('keydown',e=>{ if((e.key==='Enter'||e.key===' ')&&e.target.matches&&e.target.matches('[role=button][data-edititem]')){ e.preventDefault(); e.target.click(); } });
 document.addEventListener('click',e=>{
   const T=e.target;
@@ -2473,6 +2577,15 @@ document.addEventListener('click',e=>{
   if((el=find('data-saveitem'))){saveItem(el.dataset.saveitem||null);return;}
   if((el=find('data-delitem'))){const id=el.dataset.delitem;const t=trip();t.items=t.items.filter(x=>x.id!==id);save();closeModal();render();return;}
   // comments
+  if((el=find('data-wikipick'))){const b=document.getElementById('wikipick'); if(b){ b.hidden=false; wikiSearchUI(); const q=document.getElementById('wp-q'); if(q) q.focus(); } return;}
+  if((el=find('data-wpsearch'))){wikiSearchUI();return;}
+  if((el=find('data-wpopt'))){const r=_wpRes[+el.dataset.wpopt]; if(!r) return; _wpSel=r;
+    document.getElementById('f-wiki').value=r.title; document.getElementById('wikibox').innerHTML=wikiBoxHTML(r);
+    document.querySelectorAll('.wpopt').forEach(o=>o.classList.toggle('on',o===el));
+    const np=document.getElementById('f-nophoto'); if(np) np.checked=false; return;}
+  if((el=find('data-wikiauto'))){_wpSel=null; document.getElementById('f-wiki').value='';
+    document.getElementById('wikibox').innerHTML='<div class="wpnone">Atlas will look this stop up again automatically after you save.</div>';
+    document.querySelectorAll('.wpopt.on').forEach(o=>o.classList.remove('on')); el.remove(); return;}
   if((el=find('data-postcmt'))){postComment(el.dataset.postcmt);return;}
   if((el=find('data-delcmt'))){const [iid,cid]=el.dataset.delcmt.split(':');const t=trip();const it=t.items.find(x=>x.id===iid);
     if(it&&it.comments){it.comments=it.comments.filter(c=>c.id!==cid);save();const list=document.getElementById('cmtlist');if(list)list.innerHTML=renderComments(it);}return;}

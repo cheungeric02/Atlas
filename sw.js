@@ -1,6 +1,7 @@
-/* Atlas service worker — offline app shell + runtime font cache.
+/* Atlas service worker — offline app shell + runtime font cache + Wikipedia photo cache.
    Firebase realtime traffic is never intercepted, so live sync is unaffected. */
-const CACHE = 'atlas-v13';
+const CACHE = 'atlas-v14';
+const IMG = 'atlas-img';   // Wikipedia place photos — kept across app updates
 const SHELL = [
   './',
   './index.html',
@@ -21,7 +22,7 @@ self.addEventListener('install', e => {
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys()
-      .then(ks => Promise.all(ks.filter(k => k !== CACHE).map(k => caches.delete(k))))
+      .then(ks => Promise.all(ks.filter(k => k !== CACHE && k !== IMG).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -51,6 +52,21 @@ self.addEventListener('fetch', e => {
           return res;
         })
         .catch(() => caches.match('./index.html').then(r => r || caches.match('./')))
+    );
+    return;
+  }
+
+  // Wikipedia place photos: cache-first so stop tiles still show offline. Capped at ~500 images.
+  if (/^https:\/\/(upload|thumb)\.wikimedia\.org\//.test(req.url)) {
+    e.respondWith(
+      caches.open(IMG).then(c => c.match(req.url).then(hit => hit || fetch(req).then(res => {
+        if (res.ok || res.type === 'opaque') {
+          c.put(req.url, res.clone()).then(() => c.keys()).then(ks => {
+            if (ks.length > 500) ks.slice(0, ks.length - 450).forEach(k => c.delete(k));
+          }).catch(() => {});
+        }
+        return res;
+      })))
     );
     return;
   }
