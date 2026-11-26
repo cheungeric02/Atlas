@@ -259,7 +259,8 @@ button.legchip{cursor:pointer}
 .item.first::before{top:18px}
 .item.last::before{bottom:auto;height:48px}
 .item.first.last::before,.daylist.loose .item::before{display:none}
-.item .hop{grid-column:2;display:flex;align-items:center;gap:10px;height:30px;font-size:12px;color:var(--ink-3);padding-left:2px}
+.item .hop{grid-column:2;display:flex;align-items:center;gap:10px;height:30px;font-size:12px;color:var(--ink-3);padding-left:2px;white-space:nowrap;overflow:hidden}
+.item .hop .free{overflow:hidden;text-overflow:ellipsis;min-width:0}
 .item .hop .free{font-style:italic}
 .item .hop .dir{display:inline-flex;align-items:center;gap:4px;color:var(--ink-2);font-weight:600;text-decoration:none;padding:3px 8px;border-radius:999px;margin-left:-8px}
 .item .hop .free+.dir{margin-left:0}
@@ -286,6 +287,20 @@ button.legchip{cursor:pointer}
 .item .thumb{flex:none;width:64px;min-height:64px;align-self:stretch;max-height:84px;border-radius:10px;display:grid;place-items:center;
   background:color-mix(in srgb,var(--cc) 15%,var(--surface));color:var(--cc);transition:filter .12s}
 .item .thumb:hover{filter:brightness(.95)}
+.item .thumb.photo{background-color:var(--sc-hi);background-size:cover;background-position:center;background-repeat:no-repeat}
+.item .thumb.photo svg{display:none}
+.item .blurb{font-size:12.5px;color:var(--ink-3);margin-top:6px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.item .blurb[hidden]{display:none}
+.item .hop .tt{display:inline-flex;align-items:center;gap:4px;flex:none;color:var(--ink-2)}
+.item .hop .tt[hidden]{display:none}
+.item .hop .tt svg{width:13px;height:13px}
+.item .hop .tt+.dir{margin-left:0}
+.wikibox{display:flex;gap:12px;background:var(--sc);border-radius:var(--r-m);padding:12px;align-items:flex-start}
+.wikibox img{width:72px;height:72px;object-fit:cover;border-radius:10px;flex:none;background:var(--sc-hi)}
+.wikibox .wt{font-size:12px;font-weight:700;color:var(--ink-3);text-transform:uppercase;letter-spacing:.04em}
+.wikibox p{font-size:13px;color:var(--ink-2);line-height:1.45;margin:4px 0 6px}
+.wikibox a{font-size:12.5px;font-weight:600;color:var(--primary)}
+.chkrow{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--ink-2);margin-top:8px;cursor:pointer}
 .item .thumb svg{width:24px;height:24px}
 @media(max-width:400px){ .item .thumb{width:52px;min-height:52px} .item .icard{padding:11px 10px 11px 12px;gap:10px} }
 .item.drag-clone{position:fixed;z-index:99;pointer-events:none;opacity:.97;transform:rotate(1deg) scale(1.02);margin:0}
@@ -600,6 +615,7 @@ const I = {
   tree:'<path d="M12 2 5 12h4l-3.5 5H11v5h2v-5h5.5L15 12h4z"/>',
   moon:'<path d="M14.5 2.5A9.5 9.5 0 1 0 21.5 15 7.5 7.5 0 0 1 14.5 2.5z"/>',
   train:'<path fill-rule="evenodd" d="M7 2h10a3 3 0 0 1 3 3v10a3 3 0 0 1-2.2 2.9L19.5 21H17l-1.5-3h-7L7 21H4.5l1.7-3.1A3 3 0 0 1 4 15V5a3 3 0 0 1 3-3zM6 6v5h12V6zm2 8a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm8 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>',
+  walk:'<path d="M13.5 5.5a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM9.8 8.9 7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3A7.3 7.3 0 0 0 19 13v-2a5.2 5.2 0 0 1-4.5-2.5l-1-1.6A2 2 0 0 0 11.8 6c-.3 0-.5.1-.8.1L6 8.3V13h2V9.6z"/>',
   route:'<path fill-rule="evenodd" d="M12 1.5 22.5 12 12 22.5 1.5 12zM13 8v2.5H9.5a1 1 0 0 0-1 1V15h2v-2.5H13V15l3.5-3.5z"/>',
 };
 const svg=(n,cls='')=>`<svg viewBox="0 0 24 24" fill="currentColor" ${cls?`class="${cls}"`:''} aria-hidden="true">${I[n]||''}</svg>`;
@@ -692,9 +708,14 @@ const KEY='roam-v1';
    What's New only pops up when the DISPLAY version changes; lastSeen still stores the build.
    VER_KEY is namespaced with the app name because all of Eric's apps share one
    github.io origin's localStorage; a generic key would collide across apps. */
-const APP_VERSION=11;
+const APP_VERSION=12;
 const VER_KEY='atlas_lastSeenVer';
 const PATCH_NOTES=[
+  { v:12, ver:'2.1', date:'2026-11-26', title:'Place photos & travel times', notes:[
+    'Stops that have a Wikipedia article now show its photo on the card, plus a short description when you haven’t written notes.',
+    'Open a stop to read more from Wikipedia. If it found the wrong place, tick “Wrong place” to hide it.',
+    'Between stops you’ll see a rough travel time (walking for short hops), next to the Directions link. Turn it off with the walking button above your days.',
+    'Photos and times are looked up on your device and saved there — they don’t change the shared trip.' ]},
   { v:11, ver:'2.0', date:'2026-11-26', title:'Atlas 2.0 — a fresh new look', notes:[
     'A cleaner, flatter design with a new typeface and calmer colours, in light and dark.',
     'Each day is now a timeline: numbered stops, free time between them, and a Directions link from one stop to the next.',
@@ -1011,6 +1032,7 @@ function viewPlan(t){
     const allLck=dl.every(d=>dayLocked(t,d));
     h+=`<div class="plantools">
       <button class="iconbtn tool${allLck?' on':''}" data-locktoggle="${allLck?'0':'1'}" title="${allLck?'Unlock all days':'Lock all days'}" aria-label="${allLck?'Unlock all days':'Lock all days'}" aria-pressed="${allLck}">${svg(allLck?'lock':'unlock')}</button>
+      <button class="iconbtn tool${S.ui.travel!==false?' on':''}" data-traveltoggle title="${S.ui.travel!==false?'Hide travel time estimates':'Show travel time estimates'}" aria-label="Travel time estimates" aria-pressed="${S.ui.travel!==false}">${svg('walk')}</button>
       <button class="btn sm ghost" data-collapseall title="${allCol?'Expand all days':'Collapse all days'}">${svg('chev')}<span class="tool-lbl">${allCol?'Expand all days':'Collapse all days'}</span></button>
     </div>`;
   }
@@ -1059,7 +1081,7 @@ function viewPlan(t){
       if(k>0){
         let free='';
         if(it.start && prevEnd && it.start>prevEnd){ const g=gapMins(prevEnd,it.start); if(g>=60) free=`${Math.floor(g/60)}h${g%60?' '+(g%60)+'m':''} free`; }
-        hop={free,dir:dirURL(t,day,its[k-1],it)};
+        hop={free,dir:dirURL(t,day,its[k-1],it),from:its[k-1].id};
       }
       h+=itemHTML(t,it,{n:k+1,first:k===0,last:k===its.length-1,hop}); if(it.end)prevEnd=it.end; else if(it.start)prevEnd=it.start;
     });
@@ -1145,14 +1167,14 @@ function itemHTML(t,it,o){
   const who=(it.who||[]).map(id=>t.party.find(p=>p.id===id)).filter(Boolean);
   const nC=(it.comments&&it.comments.length)||0;
   const tm=it.start?esc(it.start)+(it.end?'–'+esc(it.end):''):'';
-  const hop=o.hop?`<div class="hop">${o.hop.free?`<span class="free">${o.hop.free}</span>`:''}${o.hop.dir?`<a class="dir" href="${esc(o.hop.dir)}" target="_blank" rel="noopener" title="Directions from the previous stop">${svg('route')} Directions</a>`:''}</div>`:'';
+  const hop=o.hop?`<div class="hop">${o.hop.free?`<span class="free">${o.hop.free}</span>`:''}${o.hop.from?`<span class="tt" data-tt="${o.hop.from}>${it.id}" hidden></span>`:''}${o.hop.dir?`<a class="dir" href="${esc(o.hop.dir)}" target="_blank" rel="noopener" title="Directions from the previous stop">${svg('route')} Directions</a>`:''}</div>`:'';
   return `<div class="item${o.first?' first':''}${o.last?' last':''}" data-item="${it.id}">${hop}
     <button class="pin" data-grip title="Drag to reorder" aria-label="Stop ${o.n||''} — drag to reorder">${o.n?o.n:svg('drag')}</button>
     <div class="icard">
       <div class="body" data-edititem="${it.id}" role="button" tabindex="0" aria-label="Edit ${esc(it.title)}">
         <div class="ttl">${esc(it.title)}</div>
         <div class="sub">${tm?`<span class="tm">${tm}</span>`:''}<span>${catName(it.category)}</span>${it.cost?`<span>${t.currency.code} ${money(it.cost)}</span>`:''}${it.confirmation?`<span>${svg('ticket')}${esc(it.confirmation)}</span>`:''}</div>
-        ${it.notes?`<div class="note">${esc(it.notes)}</div>`:''}
+        ${it.notes?`<div class="note">${esc(it.notes)}</div>`:'<div class="blurb" hidden></div>'}
         ${(who.length||nC)?`<div class="who">${who.map(p=>`<span class="ava" style="background:${p.color}" title="${esc(p.name)}">${initials(p.name)}</span>`).join('')}${nC?`<span class="cmtcount" style="margin-left:${who.length?'12px':'0'}">${svg('chat')} ${nC}</span>`:''}</div>`:''}
       </div>
       <button class="thumb" style="--cc:${catColor(it.category)}" data-gmap="${it.id}" title="Open ${esc(it.title)} in Google Maps" aria-label="Open ${esc(it.title)} in Google Maps">${svg(catIcon(it.category))}</button>
@@ -1165,6 +1187,7 @@ function afterPlan(t){
   const td=document.querySelector('.day.today');
   if(td && !S.ui._jumped){ td.scrollIntoView({block:'center',behavior:'smooth'}); S.ui._jumped=true; }
   loadWeather(t);
+  fillPlaces(t); loadPlaces(t);
 }
 
 /* ================= WEATHER (Open-Meteo, no key) =================
@@ -1209,6 +1232,8 @@ async function wxGeocode(name){
     const r=await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&format=json&name='+encodeURIComponent(name));
     const d=await r.json();
     if(d&&d.results&&d.results[0]){ const g={lat:d.results[0].latitude,lng:d.results[0].longitude}; _wxGeo[name]=g; return g; }
+    const bare=name.replace(/\s*\([^)]*\)/g,'').trim();   // "Hong Kong (North Point)" → "Hong Kong"
+    if(bare&&bare!==name){ const g=await wxGeocode(bare); if(g){ _wxGeo[name]=g; return g; } }
     _wxGeo[name]='fail'; return null;
   }catch(e){ return null; }   // network error → leave uncached, retry next open
 }
@@ -1239,6 +1264,122 @@ async function loadWeather(t){
       }catch(e){}
     }
   } finally { _wxRunning=false; fillWxChips(); }
+}
+
+/* ================= PLACE INFO (Wikipedia + Photon/OSM, no keys) =================
+   Each stop is looked up once on English Wikipedia, searched NEAR its destination
+   city, and only accepted when the article title shares a real word with the stop's
+   name — so "Easy dinner nearby" stays an icon instead of matching a random page.
+   A hit gives the card a photo, a two-sentence blurb and coordinates; stops without
+   an article are geocoded with Photon so travel times can still be estimated.
+   Everything is cached in THIS browser only (localStorage atlas_places) — none of it
+   is written to the shared trip. The only shared field is it.noPhoto, set when
+   someone ticks "wrong place" in the stop's edit sheet. */
+const PL_KEY='atlas_places';
+let _pl=null, _plSaveT=0, _plRun=false;
+function plGet(){ if(!_pl){ try{ _pl=JSON.parse(localStorage.getItem(PL_KEY)||'{}')||{}; }catch(e){ _pl={}; } } return _pl; }
+function plSave(){ clearTimeout(_plSaveT); _plSaveT=setTimeout(()=>{ try{
+  const c=plGet(), ks=Object.keys(c);
+  if(ks.length>1500) ks.sort((a,b)=>(c[a].ts||0)-(c[b].ts||0)).slice(0,ks.length-1200).forEach(k=>delete c[k]);
+  localStorage.setItem(PL_KEY,JSON.stringify(c)); }catch(e){} },400); }
+const PL_STOP=new Set(('the and for with from near nearby walk walking visit tour trip day lunch dinner breakfast brunch food drinks drink cafe coffee '
+  +'hotel check out checkin transfer airport station shopping market night evening morning afternoon area around along easy quick short long '
+  +'free time back return explore street local first last final arrive arrival depart departure leave pack rest nap city town view views').split(' '));
+const PL_GENERIC=new Set(('waterfront harbour harbor beach park temple temples shrine museum garden gardens castle tower bridge river lake mountain hill '
+  +'bay island mall square promenade pier ferry tram line cable ride onsen bath ramen sushi dim sum noodle noodles seafood bbq barbecue hotpot '
+  +'izakaya bar bars pub club restaurant village fishing old new central north south east west centre center road district markets tea '
+  +'teahouse dessert bakery cruise boat train rail bus metro mtr subway terminal port lookout hike trail').split(' '));
+const plWords=s=>(s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').split(/[^a-z0-9]+/).filter(w=>w.length>=3&&!PL_STOP.has(w)).map(w=>w.length>4&&/[^s]s$/.test(w)?w.slice(0,-1):w);   // temples→temple
+const plCity=(t,it)=>{ const l=it.day?legFor(t,it.day):null; return ((l&&l.place)||t.dest||(t.legs[0]&&t.legs[0].place)||'').trim(); };
+const plKey=(t,it)=>((it.title||'')+'|'+(it.address||'')+'|'+plCity(t,it)).toLowerCase().trim();
+const plEntry=(t,it)=>plGet()[plKey(t,it)]||null;
+const plSleep=ms=>new Promise(r=>setTimeout(r,ms));
+const okImg=u=>/^https:\/\/(upload|thumb)\.wikimedia\.org\//.test(u||'')?u:'';
+function kmBetween(a,b){ const R=6371,r=x=>x*Math.PI/180, dLa=r(b.lat-a.lat), dLo=r(b.lng-a.lng);
+  const h=Math.sin(dLa/2)**2+Math.cos(r(a.lat))*Math.cos(r(b.lat))*Math.sin(dLo/2)**2; return 2*R*Math.asin(Math.sqrt(h)); }
+async function plWiki(q,c,city){
+  const u='https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*&redirects=1&generator=search&gsrlimit=5'
+    +'&gsrsearch='+encodeURIComponent(q+(c?' nearcoord:75km,'+c.lat.toFixed(4)+','+c.lng.toFixed(4):''))
+    +'&prop=pageimages|extracts|coordinates|info&inprop=url&exintro=1&explaintext=1&exsentences=2&piprop=thumbnail&pithumbsize=320';
+  const r=await fetch(u); if(!r.ok) throw new Error('wiki '+r.status); const d=await r.json();
+  const pages=Object.values((d.query&&d.query.pages)||{}).sort((a,b)=>(a.index||0)-(b.index||0));
+  const want=new Set(plWords(q)); if(!want.size) return null;
+  const cw=new Set(plWords(city));
+  let best=null, bs=0;
+  for(const p of pages){   // score = title words shared with the stop − extra title words (city names don't count)
+    const have=plWords(p.title).filter(w=>!cw.has(w)||want.has(w));
+    if(!have.some(w=>want.has(w)&&!PL_GENERIC.has(w))) continue;   // needs a distinctive shared word
+    const co=p.coordinates&&p.coordinates[0];
+    if(c&&co&&kmBetween(c,{lat:co.lat,lng:co.lon})>80) continue;
+    const sc=have.reduce((n,w)=>n+(want.has(w)?1:-1),0);
+    if(sc>bs){ best=p; bs=sc; }
+  }
+  if(best){ const p=best, co=p.coordinates&&p.coordinates[0];
+    const keep=c&&co;
+    return {title:p.title, url:p.fullurl||'https://en.wikipedia.org/wiki/'+encodeURIComponent(p.title.replace(/ /g,'_')),
+      img:okImg(p.thumbnail&&p.thumbnail.source), ext:(p.extract||'').trim().slice(0,420), lat:keep?co.lat:null, lng:keep?co.lon:null};
+  }
+  return null;
+}
+async function plGeo(q,c){
+  const u='https://photon.komoot.io/api/?limit=1&q='+encodeURIComponent(q)+(c?'&lat='+c.lat+'&lon='+c.lng:'');
+  const r=await fetch(u); if(!r.ok) throw new Error('geo '+r.status); const d=await r.json();
+  const f=d.features&&d.features[0]; if(!f) return null;
+  const g={lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0]};
+  return (!c||kmBetween(c,g)<80)?g:null;
+}
+async function loadPlaces(t){
+  if(_plRun||!t) return; _plRun=true;
+  try{
+    const c=plGet(), now=Date.now(), today=todayISO();
+    const stale=e=>!e||(e.err&&now-e.ts>36e5)||(e.none&&now-e.ts>14*864e5);
+    const seen=new Set();
+    const todo=t.items.filter(it=>it.title&&!(it.category==='transport'&&!it.address))
+      .filter(it=>{ const k=plKey(t,it); if(seen.has(k)) return false; seen.add(k); return stale(c[k]); })
+      .sort((a,b)=>{ const r=i=>!i.day?2:(i.day>=today?0:1); return r(a)-r(b)||String(a.day).localeCompare(String(b.day))||(a.order??0)-(b.order??0); });
+    for(const it of todo){
+      if(trip()!==t||S.ui.view!=='plan') break;          // switched trip / left Plan → resume next visit
+      const k=plKey(t,it), city=plCity(t,it);
+      const center=city?await wxGeocode(city):null;
+      let rec={ts:Date.now()};
+      try{
+        const w=it.category==='transport'?null:await plWiki(it.title,center,city);
+        if(w) Object.assign(rec,w);
+        if(rec.lat==null&&center){ await plSleep(900); const bare=city.replace(/\s*\([^)]*\)/g,'').trim();
+          const g=await plGeo(it.address||(it.title+(bare?', '+bare:'')),center); if(g){ rec.lat=g.lat; rec.lng=g.lng; } }
+        if(!rec.title&&rec.lat==null) rec.none=1;
+      }catch(e){ rec={ts:Date.now(),err:1}; }
+      c[k]=rec; plSave(); fillPlaces(t);
+      await plSleep(150);
+    }
+  } finally { _plRun=false; }
+}
+// Rough door-to-door guess from straight-line distance (+30% for real streets).
+function travelLabel(km){
+  if(km<0.15) return [svg('walk')+' next door','A few steps away'];
+  if(km<=2){ const m=Math.max(2,Math.round(km/4.8*60)); return [svg('walk')+' ~'+m+' min walk','About '+km.toFixed(1)+' km on foot'];}
+  if(km<=90){ let m=Math.round((8+km/22*60)/5)*5; const lbl=m<60?m+' min':Math.floor(m/60)+'h'+(m%60?' '+m%60+'m':'');
+    return [svg('train')+' ~'+lbl,'About '+km.toFixed(km<10?1:0)+' km — rough time by transit or car'];}
+  return [svg('train')+' ~'+Math.round(km)+' km','About '+Math.round(km)+' km apart'];
+}
+function fillPlaces(t){
+  if(!t||S.ui.view!=='plan') return;
+  const byId={}; t.items.forEach(i=>byId[i.id]=i);
+  document.querySelectorAll('.item[data-item]').forEach(el=>{
+    const it=byId[el.dataset.item]; if(!it) return;
+    const e=it.noPhoto?null:plEntry(t,it);
+    const th=el.querySelector('.thumb'), img=e&&e.img;
+    if(th&&img&&th.dataset.img!==img){ th.style.backgroundImage='url("'+img+'")'; th.classList.add('photo'); th.dataset.img=img; }
+    else if(th&&!img&&th.dataset.img){ th.style.backgroundImage=''; th.classList.remove('photo'); delete th.dataset.img; }
+    const bl=el.querySelector('.blurb'); if(bl){ const x=e&&e.ext; bl.textContent=x||''; bl.hidden=!x; }
+  });
+  const on=S.ui.travel!==false;
+  document.querySelectorAll('.hop [data-tt]').forEach(sp=>{
+    const [a,b]=sp.dataset.tt.split('>'), ea=byId[a]&&plEntry(t,byId[a]), eb=byId[b]&&plEntry(t,byId[b]);
+    if(!on||!(ea&&eb&&ea.lat!=null&&eb.lat!=null)){ sp.hidden=true; return; }
+    const [h,tip]=travelLabel(kmBetween(ea,eb)*1.3);
+    sp.innerHTML=h; sp.title=tip+' (estimate — tap Directions for real times)'; sp.hidden=false;
+  });
 }
 
 /* ================= PHOTOS & DOCUMENTS =================
@@ -1800,9 +1941,17 @@ function itemModal(id,defaultDay){
     +`<div class="field row2">${field('Cost ('+t.currency.code+')',`<input id="f-cost" type="number" inputmode="decimal" value="${it.cost||''}">`)}${field('Confirmation #',`<input id="f-conf" value="${it.confirmation?esc(it.confirmation):''}">`)}</div>`
     +field('Who',selWho(t,it.who))
     +field('Notes',`<textarea id="f-notes" placeholder="tips, links, reminders">${it.notes?esc(it.notes):''}</textarea>`)
+    +(id?wikiSection(t,it):'')
     +(id?commentsSection(it):''),
     `${id?`<button class="btn ghost" data-delitem="${id}">${svg('trash')}</button>`:''}<button class="btn" data-saveitem="${id||''}">${id?'Save':'Add'}</button>`);
   attachCatWho();
+}
+function wikiSection(t,it){
+  const e=plEntry(t,it); if(!(e&&e.title)&&!it.noPhoto) return '';
+  const box=e&&e.title?`<div class="wikibox">${e.img?`<img src="${esc(e.img)}" alt="" loading="lazy">`:''}<div><div class="wt">From Wikipedia · ${esc(e.title)}</div>
+    ${e.ext?`<p>${esc(e.ext)}</p>`:''}<a href="${esc(e.url)}" target="_blank" rel="noopener">Read more on Wikipedia</a></div></div>`:'';
+  return `<div class="field"><label>Place info</label>${box}
+    <label class="chkrow"><input type="checkbox" id="f-nophoto"${it.noPhoto?' checked':''}> Wrong place — hide the photo and blurb for this stop</label></div>`;
 }
 function commentsSection(it){
   return `<div class="field"><label>Comments${(it.comments&&it.comments.length)?' ('+it.comments.length+')':''}</label>
@@ -1860,7 +2009,8 @@ function saveItem(id){
   const data={title,category:readCat(),start:g('f-start'),end:g('f-end'),day:document.getElementById('f-day').value||null,
     address:g('f-addr'),cost:g('f-cost')?Number(g('f-cost')):null,confirmation:g('f-conf'),who:readWho(),notes:g('f-notes')};
   if(id){const ex=t.items.find(x=>x.id===id);
-    Object.assign(ex,data);}
+    Object.assign(ex,data);
+    const np=document.getElementById('f-nophoto'); if(np){ if(np.checked) ex.noPhoto=true; else delete ex.noPhoto; }}
   else{data.id=uid();data.order=(t.items.filter(i=>i.day===data.day).length);t.items.push(data);}
   save();closeModal();render();
 }
@@ -2303,6 +2453,7 @@ document.addEventListener('click',e=>{
   if((el=find('data-editleg'))){legModal(el.dataset.editleg);return;}
   // day collapse
   if((el=find('data-collapseday'))){toggleCollapseDay(el.dataset.collapseday);return;}
+  if((el=find('data-traveltoggle'))){S.ui.travel=S.ui.travel===false;save();const on=S.ui.travel!==false;el.classList.toggle('on',on);el.setAttribute('aria-pressed',on);el.title=on?'Hide travel time estimates':'Show travel time estimates';fillPlaces(trip());return;}
   if(find('data-collapseall')){toggleCollapseAll();return;}
   if(find('data-locktoggle')){lockAllDays(find('data-locktoggle').getAttribute('data-locktoggle')==='1');return;}
   if((el=find('data-lockday'))){toggleDayLock(el.dataset.lockday);return;}
