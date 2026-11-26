@@ -380,6 +380,7 @@ button.legchip{cursor:pointer}
 .pn-sec{margin-top:6px;border:1px solid var(--line);border-radius:var(--r-m);background:var(--sc-low)}
 .pn-sec summary{display:flex;align-items:center;gap:8px;padding:12px 14px;cursor:pointer;font-weight:600;font-size:14px;color:var(--ink);list-style:none}
 .pn-sec summary::-webkit-details-marker{display:none}
+.pn-build{opacity:.6;font-weight:500}
 .pn-sec summary svg{width:18px;height:18px;color:var(--primary)}
 .pn-sec[open] summary{border-bottom:1px solid var(--line)}
 .pn-sec .pn-list{padding:12px}
@@ -596,40 +597,51 @@ const tzLabel=n=>'UTC'+(n>=0?'+':'')+n;
 const KEY='roam-v1';
 
 /* ---- Developer patch notes ----
-   APP_VERSION MUST equal the sw.js cache number ("atlas-v<N>") — bump BOTH together.
+   Two numbers:
+   • BUILD = APP_VERSION, an integer bumped by 1 on EVERY push. It MUST equal the sw.js
+     cache number ("atlas-v<N>") — bump BOTH together.
+   • DISPLAY = APP_DISPLAY, the major.minor people see (1.0, 1.1 … 2.0). A new feature gets
+     the next minor; a new era / big overhaul gets the next major; small follow-ups and
+     fixes do NOT get a new display version.
+   PATCH_NOTES: newest first, ONE entry per display version, { v:<last build in that
+   version>, ver, date, title, notes }. The top entry's v must always === APP_VERSION.
+   Small fix → add a bullet to the top entry and set its v to the new build.
+   New feature → add a new top entry with the next minor version.
+   What's New only pops up when the DISPLAY version changes; lastSeen still stores the build.
    VER_KEY is namespaced with the app name because all of Eric's apps share one
    github.io origin's localStorage; a generic key would collide across apps. */
-const APP_VERSION=8;
+const APP_VERSION=9;
 const VER_KEY='atlas_lastSeenVer';
 const PATCH_NOTES=[
-  { v:8, date:'2026-11-26', title:'Google Maps by day', notes:[
+  { v:9, ver:'1.4', date:'2026-11-26', title:'Google Maps by day', notes:[
     'Removed the Map tab.',
-    'Each day now has a Google Maps link that opens that day’s stops, in order, as a route.' ]},
-  { v:7, date:'2026-10-15', title:'Patch Notes fixes', notes:[
-    'Patch Notes now opens from the Trips screen, and reading it in Trip settings no longer discards unsaved changes.',
-    'The What’s New popup no longer holds back live updates from your group.' ]},
-  { v:6, date:'2026-09-22', title:'Shop, day locks & Patch Notes', notes:[
+    'Each day now has a Google Maps link that opens that day’s stops, in order, as a route.',
+    'Day headers no longer crowd the day name on phones.',
+    'New version numbering: Atlas 1.4 · build 9 (earlier updates regrouped into versions 1.0–1.3).' ]},
+  { v:7, ver:'1.3', date:'2026-10-15', title:'Shop, day locks & Patch Notes', notes:[
     'Added a Shop tab for a souvenir / shopping wishlist.',
     'Lock a single day — or all days at once — to prevent accidental drag-and-drop moves; destinations and day tools share one row.',
-    'Added Patch Notes and a one-time What’s New popup after each update.' ]},
-  { v:5, date:'2026-09-04', title:'Sharper logo', notes:[
-    'The compass logo now has deeper shading so it reads clearly at small sizes.' ]},
-  { v:4, date:'2026-09-03', title:'Smarter planning & fresh look', notes:[
+    'Added Patch Notes and a one-time What’s New popup after each update.',
+    'Patch Notes opens from the Trips screen, and reading it in Trip settings no longer discards unsaved changes.',
+    'The What’s New popup no longer holds back live updates from your group.' ]},
+  { v:5, ver:'1.2', date:'2026-09-04', title:'Smarter planning & fresh look', notes:[
     'Import a whole itinerary from any AI, plus an auto-suggested packing list.',
     'Colours group by destination; currency and time zones auto-fill from your stops.',
-    'Sticky destinations bar, collapsible days, and a new compass logo.' ]},
-  { v:3, date:'2026-09-02', title:'Stability & speed', notes:[
-    'Fixed a rare blank-screen crash when a trip had empty sections.',
-    'The app now always loads the newest version on refresh.' ]},
-  { v:2, date:'2026-09-02', title:'Maps, weather & memories', notes:[
-    'Added an interactive map with pins and routes coloured by day.',
+    'Sticky destinations bar, collapsible days, and a new compass logo.',
+    'The compass logo has deeper shading so it reads clearly at small sizes.' ]},
+  { v:3, ver:'1.1', date:'2026-09-02', title:'Weather, memories & documents', notes:[
     'Added per-day weather forecasts and photo memories.',
-    'Added travel-document storage for boarding passes and confirmations.' ]},
-  { v:1, date:'2026-09-02', title:'Atlas launches', notes:[
+    'Added travel-document storage for boarding passes and confirmations.',
+    'Added an interactive map with pins and routes coloured by day (since removed).',
+    'Fixed a rare blank-screen crash when a trip had empty sections.',
+    'The app always loads the newest version on refresh.' ]},
+  { v:1, ver:'1.0', date:'2026-09-02', title:'Atlas launches', notes:[
     'Multi-destination, day-by-day planner with drag-and-drop, hotels and cost splitting.',
     'Open real-time collaboration — everyone with the link plans together.',
     'Installable offline app with comments, a currency converter, flight details and reminders.' ]}
 ];
+const APP_DISPLAY = PATCH_NOTES[0].ver;
+function verOfBuild(b){ for(let i=PATCH_NOTES.length-1;i>=0;i--){ if(PATCH_NOTES[i].v>=b) return PATCH_NOTES[i].ver; } return APP_DISPLAY; }
 
 let S={v:1,trips:{},order:[],active:null,ui:{view:'trips',prepTab:'packing'}};
 /* Firebase Realtime DB drops empty arrays/objects on write, so a trip saved with
@@ -860,7 +872,7 @@ function viewTrips(){
   h+=`</div>${patchFootHTML()}`;
   return h;
 }
-const patchFootHTML=()=>`<div class="pn-foot"><button class="btn sm ghost" data-act="patch-notes">${svg('info')} Patch Notes · v${APP_VERSION}</button></div>`;
+const patchFootHTML=()=>`<div class="pn-foot"><button class="btn sm ghost" data-act="patch-notes">${svg('info')} Patch Notes · Atlas ${APP_DISPLAY} <span class="pn-build">· build ${APP_VERSION}</span></button></div>`;
 
 /* ================= VIEW: PLAN ================= */
 function basedHotel(t,day){ return t.hotels.find(h=>h.checkIn&&h.checkOut&&day>=h.checkIn&&day<h.checkOut); }
@@ -1736,7 +1748,7 @@ function tripModal(id){
     +field('Home city',`<input id="t-home" value="${esc(t.homeCity||'')}" placeholder="Toronto" autocomplete="off">`,'Sets your home clock — pick a city and the timezone fills in.')
     +`<div class="autonote" id="t-home-note"></div>`
     +`<div class="field row2">${field('Destination UTC offset',`<input id="t-dtz" type="number" value="${t.destTZ!==''&&t.destTZ!=null?t.destTZ:''}" placeholder="8">`,'auto-fills from destination')}${field('Home UTC offset',`<input id="t-htz" type="number" value="${t.homeTZ!==''&&t.homeTZ!=null?t.homeTZ:''}" placeholder="-5">`,'auto-fills from home city')}</div>`
-    +`<details class="pn-sec"><summary>${svg('info')} Patch Notes · v${APP_VERSION}</summary>${patchListHTML(PATCH_NOTES)}</details>`,
+    +`<details class="pn-sec"><summary>${svg('info')} Patch Notes · Atlas ${APP_DISPLAY} <span class="pn-build">· build ${APP_VERSION}</span></summary>${patchListHTML(PATCH_NOTES)}</details>`,
     `${id?`<button class="btn ghost" data-scrim-keep data-newtrip-cancel style="display:none"></button>`:''}<button class="btn block" data-savetrip="${id||''}">${id?'Save':'Create trip'}</button>`);
   attachTripForm(id);
 }
@@ -2054,7 +2066,7 @@ function souvModal(){ sheet('Add souvenir',
 /* ---- Patch notes / What's New (one shared entry renderer) ---- */
 function patchEntryHTML(p,isCurrent){
   return `<div class="pn-entry${isCurrent?' pn-cur':''}">
-    <div class="pn-top"><span class="pn-v">v${p.v}</span>${isCurrent?'<span class="pn-badge">Current</span>':''}<span class="pn-date">${esc(p.date)}</span></div>
+    <div class="pn-top"><span class="pn-v">${esc(p.ver)}</span>${isCurrent?'<span class="pn-badge">Current</span>':''}<span class="pn-date">${esc(p.date)}</span></div>
     <div class="pn-title">${esc(p.title)}</div>
     <ul class="pn-notes">${p.notes.map(n=>`<li>${esc(n)}</li>`).join('')}</ul>
   </div>`;
@@ -2070,7 +2082,7 @@ function infoSheet(title,body,btnLabel){
   const b=mroot().querySelector('.sh-actions .btn'); if(b) b.focus({preventScroll:true});
 }
 function patchNotesModal(){
-  infoSheet('Patch Notes',`<div class="pn-now">You’re on <b>Atlas v${APP_VERSION}</b></div>${patchListHTML(PATCH_NOTES)}`,'Done');
+  infoSheet('Patch Notes',`<div class="pn-now">You’re on <b>Atlas ${APP_DISPLAY}</b> <span class="pn-build">· build ${APP_VERSION}</span></div>${patchListHTML(PATCH_NOTES)}`,'Done');
 }
 function whatsNewModal(entries){
   infoSheet('What’s New',patchListHTML(entries),'Got it');
@@ -2079,14 +2091,16 @@ function whatsNewModal(entries){
 function maybeWhatsNew(){
   let hasPrior=false, lastSeen=null;
   try{ hasPrior=!!localStorage.getItem(KEY); }catch(e){}
-  try{ const n=parseInt(localStorage.getItem(VER_KEY),10); if(!isNaN(n)) lastSeen=n; }catch(e){}
+  try{ const n=parseFloat(localStorage.getItem(VER_KEY)); if(!isNaN(n)) lastSeen=n; }catch(e){}
   const writeSeen=()=>{ try{ localStorage.setItem(VER_KEY,String(APP_VERSION)); }catch(e){} };
   // Brand-new install (no prior saved data, no marker) → record silently, no popup.
   if(!hasPrior && lastSeen==null){ writeSeen(); return; }
   // Already up to date (or ahead) → nothing to show.
   if(lastSeen!=null && lastSeen>=APP_VERSION){ return; }
-  // Existing pre-feature user (marker missing) → latest entry only; otherwise the delta.
-  const entries = (lastSeen==null) ? PATCH_NOTES.slice(0,1) : PATCH_NOTES.filter(p=>p.v>lastSeen);
+  // Existing pre-feature user (marker missing) → latest entry only; otherwise only display
+  // versions newer than the one they last saw (small builds within a version stay quiet).
+  const lastVer = lastSeen==null ? null : verOfBuild(lastSeen);
+  const entries = (lastSeen==null) ? PATCH_NOTES.slice(0,1) : PATCH_NOTES.filter(e=>e.v>lastSeen && e.ver!==lastVer);
   // Mark seen the moment we show it, so it appears exactly once even if closed immediately.
   writeSeen();
   if(entries.length) whatsNewModal(entries);
